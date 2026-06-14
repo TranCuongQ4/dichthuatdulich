@@ -1,0 +1,322 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+/* Fix cứng kích thước 375x667 trên mọi thiết bị */
+html, body {
+    width: 375px;
+    height: 667px;
+    margin: 0 auto;
+    padding: 0;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+body {
+    background-color: #0a3d2f;
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Viền trắng + LED chạy */
+body::before {
+    content: '';
+    position: fixed;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    pointer-events: none;
+    border: 2px solid white;
+    border-radius: 24px;
+    z-index: 10;
+    box-shadow: 0 0 8px rgba(255,255,255,0.5);
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    pointer-events: none;
+    border-radius: 28px;
+    background: repeating-linear-gradient(
+        110deg,
+        #ff0 0px, #ff0 6px,
+        #0f0 6px, #0f0 12px,
+        #0ff 12px, #0ff 18px,
+        #f0f 18px, #f0f 24px
+    );
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 4px;
+    background-size: 200% 200%;
+    animation: ledMove 1.5s linear infinite;
+    opacity: 0.8;
+}
+
+@keyframes ledMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 200% 200%; }
+}
+
+.app-container {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px 12px 20px;
+    min-height: 667px;
+    height: auto;
+}
+
+.glow-title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 0px #b8860b, 4px 4px 0px rgba(0,0,0,0.3);
+    animation: gentleBlink 1.8s ease-in-out infinite;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+@keyframes gentleBlink {
+    0% { text-shadow: 2px 2px 0px #b8860b, 4px 4px 0px black; opacity: 1; }
+    50% { text-shadow: 2px 2px 6px #ffd700, 4px 6px 10px #ffaa00; opacity: 0.95; }
+    100% { text-shadow: 2px 2px 0px #b8860b, 4px 4px 0px black; opacity: 1; }
+}
+
+.button-group {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin: 8px 0;
+}
+
+.lang-btn {
+    flex: 1;
+    padding: 14px 0;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 48px;
+    border: none;
+    background: #1e6b4c;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    text-transform: uppercase;
+}
+
+.lang-btn:active {
+    transform: scale(0.97);
+}
+
+/* TRẠNG THÁI ACTIVE - MÀU ĐỎ + HIỆU ỨNG NHẤP NHÁY LIÊN TỤC */
+.lang-btn.active-mode {
+    background-color: #dc143c;
+    animation: redBlinkContinuous 0.6s ease-in-out infinite;
+    box-shadow: 0 0 15px #ff4444;
+}
+
+@keyframes redBlinkContinuous {
+    0% { background-color: #dc143c; box-shadow: 0 0 5px #ff4444; }
+    50% { background-color: #ff3333; box-shadow: 0 0 20px #ff6666; }
+    100% { background-color: #dc143c; box-shadow: 0 0 5px #ff4444; }
+}
+
+/* Hiệu ứng chớp đỏ tạm thời khi nhấn */
+.lang-btn.blink-red {
+    animation: redFlash 0.3s ease-in-out 1;
+}
+
+@keyframes redFlash {
+    0% { background-color: #1e6b4c; }
+    50% { background-color: #ff6600; transform: scale(0.95); }
+    100% { background-color: #1e6b4c; }
+}
+
+/* Toolbar lịch sử */
+.history-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 30px;
+    margin: 10px 0 5px;
+}
+
+.history-count {
+    font-size: 13px;
+    color: #ffefc0;
+    background: #0e5e44;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.clear-btn {
+    background: #8b3a3a;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 25px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.clear-btn:active {
+    background: #a52a2a;
+    transform: scale(0.96);
+}
+
+.history-panel {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    border: 1px solid #aaffcc;
+    backdrop-filter: blur(3px);
+    overflow: hidden;
+}
+
+.history-header {
+    background: #0e5e44;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    color: #ffefc0;
+    font-size: 18px;
+    border-bottom: 1px solid gold;
+}
+
+.history-list {
+    height: 230px;
+    overflow-y: auto;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: #fef9e6;
+}
+
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+.history-list::-webkit-scrollbar-track {
+    background: #cddcd0;
+    border-radius: 8px;
+}
+.history-list::-webkit-scrollbar-thumb {
+    background: #2c7a4d;
+    border-radius: 8px;
+}
+
+.empty-history {
+    text-align: center;
+    color: #777;
+    font-style: italic;
+    padding: 30px 12px;
+}
+
+.history-item {
+    background: white;
+    border-radius: 18px;
+    padding: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    border-left: 6px solid #2ecc71;
+}
+
+.source-text {
+    font-weight: bold;
+    color: #2c3e2f;
+    margin-bottom: 5px;
+    font-size: 14px;
+    word-break: break-word;
+}
+
+.target-text {
+    font-weight: 500;
+    color: #1b4d2e;
+    margin-bottom: 10px;
+    background: #e9f5ef;
+    padding: 8px;
+    border-radius: 14px;
+    font-size: 13px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.action-btn {
+    background: #e0e7e2;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 36px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #1d4d2a;
+}
+
+.action-btn:active {
+    background: #bfd8c7;
+}
+
+/* Footer */
+.app-footer {
+    text-align: center;
+    padding: 12px 0 8px;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    margin-top: 8px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 20px;
+}
+
+/* Toast thông báo */
+#custom-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 20px;
+    right: 20px;
+    background: #1e3a2f;
+    color: #ffefc0;
+    text-align: center;
+    padding: 10px;
+    border-radius: 30px;
+    font-size: 12px;
+    z-index: 1000;
+    transition: opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+    border: 1px solid gold;
+    font-weight: bold;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
