@@ -5,32 +5,31 @@
     user-select: none;
 }
 
-/* Fix cứng kích thước 375x667 trên mọi thiết bị */
-html, body {
+/* Container chính giữa màn hình - kích thước 375x667 */
+.screen-container {
     width: 375px;
     height: 667px;
     margin: 0 auto;
-    padding: 0;
+    position: relative;
+    background-color: #0a3d2f;
     overflow: hidden;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
 }
 
-body {
-    background-color: #0a3d2f;
-    font-family: 'Segoe UI', 'Roboto', sans-serif;
-    position: relative;
+/* Nội dung cuộn bên trong */
+.content-scroll {
+    width: 100%;
+    height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
+    position: relative;
+    z-index: 5;
 }
 
-/* Viền trắng + LED chạy */
-body::before {
+/* Viền trắng bao quanh khung 375x667 */
+.screen-container::before {
     content: '';
-    position: fixed;
+    position: absolute;
     top: 6px;
     left: 6px;
     right: 6px;
@@ -42,9 +41,10 @@ body::before {
     box-shadow: 0 0 8px rgba(255,255,255,0.5);
 }
 
-body::after {
+/* LED chạy bao quanh khung 375x667 */
+.screen-container::after {
     content: '';
-    position: fixed;
+    position: absolute;
     top: 2px;
     left: 2px;
     right: 2px;
@@ -67,6 +67,7 @@ body::after {
     background-size: 200% 200%;
     animation: ledMove 1.5s linear infinite;
     opacity: 0.8;
+    z-index: 10;
 }
 
 @keyframes ledMove {
@@ -74,9 +75,17 @@ body::after {
     100% { background-position: 200% 200%; }
 }
 
+body {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
 .app-container {
-    position: relative;
-    z-index: 5;
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -195,6 +204,7 @@ body::after {
     border: 1px solid #aaffcc;
     backdrop-filter: blur(3px);
     overflow: hidden;
+    margin-bottom: 10px;
 }
 
 .history-header {
@@ -207,8 +217,9 @@ body::after {
     border-bottom: 1px solid gold;
 }
 
+/* 🔥 QUAN TRỌNG: Khung lịch sử cao 400px */
 .history-list {
-    height: 230px;
+    height: 400px;
     overflow-y: auto;
     padding: 12px 10px;
     display: flex;
