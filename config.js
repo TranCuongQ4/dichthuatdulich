@@ -1,12 +1,9 @@
 // config.js - Cấu hình chung cho toàn bộ dự án
-// Tất cả API key và model đều quản lý tại đây
 
 // ========== CẤU HÌNH MODEL ==========
-const MODEL_NAME = "llama3-70b-8192";  // Thay đổi model tại đây nếu cần
+const MODEL_NAME = "llama3-70b-8192";
 
 // ========== CẤU HÌNH API ==========
-// Lưu ý: API key nên được giấu qua Cloudflare Worker hoặc biến môi trường
-// Hiện tại Worker đang giữ key, frontend chỉ cần gọi Worker URL
 const WORKER_URL = "/api/groq-proxy";
 
 // ========== HÀM GỌI API DÙNG CHUNG ==========
@@ -58,3 +55,6 @@ async function callApi(prompt, modelName = MODEL_NAME) {
         return "[Lỗi kết nối]";
     }
 }
+
+// 👇 THÊM DÒNG NÀY để tương thích với tên hàm trong tieng*.js
+const callGroqAPI = callApi;

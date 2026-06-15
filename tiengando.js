@@ -19,7 +19,7 @@ async function translateHindi(text, sourceLang, targetLang) {
     }
     
     // Sử dụng hàm từ config.js
-    return await callGroqAPI(prompt, 0, 200);
+    return await callApi(prompt, 0, 200);
 }
 
 // Hàm khởi tạo nhận diện giọng nói tiếng Hindi

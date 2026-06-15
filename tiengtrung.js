@@ -19,7 +19,7 @@ async function translateChinese(text, sourceLang, targetLang) {
     }
     
     // Sử dụng hàm từ config.js
-    return await callGroqAPI(prompt, 0, 300);
+    return await callApi(prompt, 0, 300);
 }
 
 // Hàm khởi tạo nhận diện giọng nói tiếng Trung

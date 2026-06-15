@@ -19,7 +19,7 @@ async function translateFrench(text, sourceLang, targetLang) {
     }
     
     // Sử dụng hàm từ config.js
-    return await callGroqAPI(prompt, 0, 300);
+    return await callApi(prompt, 0, 300);
 }
 
 // Hàm kiểm tra và lấy giọng đọc tiếng Pháp
