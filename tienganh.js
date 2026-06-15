@@ -44,6 +44,7 @@ window.sharedCreateGenericRecognition = function(langCode, onResult, onEnd) {
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = langCode;
+    recognition._ended = false; // ← thêm flag để đánh dấu đã kết thúc
     
     recognition.onresult = async (e) => { 
         let t = ""; 
@@ -54,11 +55,13 @@ window.sharedCreateGenericRecognition = function(langCode, onResult, onEnd) {
     };
     
     recognition.onerror = (e) => { 
+        if (e.error === 'aborted') return; // ← bỏ qua lỗi aborted bình thường
         console.error("Lỗi Speech (" + langCode + "):", e.error);
         if (onEnd) onEnd(); 
     };
     
     recognition.onend = () => { 
+        recognition._ended = true;
         if (onEnd) onEnd(); 
     };
     return recognition;
@@ -67,13 +70,16 @@ window.sharedCreateGenericRecognition = function(langCode, onResult, onEnd) {
 // Hàm tắt mic an toàn tuyệt đối
 window.stopAllListeningGlobal = () => {
     if (window.globalCurrentRecognition) {
-        try {
-            window.globalCurrentRecognition.onend = null; // Gỡ bỏ sự kiện end để tránh lặp luồng
-            window.globalCurrentRecognition.abort();
-        } catch(e) {
-            console.log("Không thể giải phóng mic cũ:", e);
-        }
+        const rec = window.globalCurrentRecognition;
         window.globalCurrentRecognition = null;
+        if (!rec._ended) { // ← chỉ abort nếu chưa tự kết thúc
+            try {
+                rec.onend = null;
+                rec.abort();
+            } catch(e) {
+                console.log("Không thể giải phóng mic cũ:", e);
+            }
+        }
     }
 };
 
@@ -107,10 +113,17 @@ window.startListeningAnhViet = (cb) => {
     
     anhVietCallback = cb;
     const rec = window.sharedCreateGenericRecognition("en-US", async (t) => {
+        // Kiểm tra xem recognition này vẫn còn hợp lệ không
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const v = await callApi(`Dịch câu sau đây từ Anh sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (anhVietCallback) anhVietCallback(t, v);
         window.speakVietForEnglish(v);
-        window.stopAllListeningGlobal();
+        
+        // Chỉ dừng nếu recognition chưa kết thúc tự động
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningAnh = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
@@ -119,7 +132,6 @@ window.startListeningAnhViet = (cb) => {
     if (rec) {
         window.globalCurrentRecognition = rec;
         try {
-            // Thực hiện start trực tiếp không bọc qua setTimeout hay speechSynthesis mồi
             rec.start();
             isListeningAnh = true;
         } catch(e) { console.error("Lỗi kích hoạt mic:", e); }
@@ -131,10 +143,17 @@ window.startListeningVietAnh = (cb) => {
     
     vietAnhCallback = cb;
     const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+        // Kiểm tra xem recognition này vẫn còn hợp lệ không
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const e = await callApi(`Dịch câu sau đây từ Việt sang Anh (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietAnhCallback) vietAnhCallback(t, e);
         window.speakEnglish(e);
-        window.stopAllListeningGlobal();
+        
+        // Chỉ dừng nếu recognition chưa kết thúc tự động
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningViet = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;

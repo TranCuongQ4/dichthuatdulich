@@ -59,10 +59,15 @@ window.startListeningPhapViet = (cb) => {
     
     phapVietCallback = cb;
     const rec = window.sharedCreateGenericRecognition("fr-FR", async (t) => {
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const v = await callApi_FR(`Dịch câu sau đây từ Pháp sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (phapVietCallback) phapVietCallback(t, v);
         window.speakVietForFrench(v);
-        window.stopAllListeningGlobal();
+        
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningPhap = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
@@ -82,10 +87,15 @@ window.startListeningVietPhap = (cb) => {
     
     vietPhapCallback = cb;
     const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const f = await callApi_FR(`Dịch câu sau đây từ Việt sang Pháp (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietPhapCallback) vietPhapCallback(t, f);
         window.speakFrench(f);
-        window.stopAllListeningGlobal();
+        
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningVietPhap = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;

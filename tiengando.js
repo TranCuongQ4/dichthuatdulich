@@ -59,10 +59,15 @@ window.startListeningAnDoViet = (cb) => {
     
     anDoVietCallback = cb;
     const rec = window.sharedCreateGenericRecognition("hi-IN", async (t) => {
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const v = await callApi_HI(`Dịch câu sau đây từ Hindi sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (anDoVietCallback) anDoVietCallback(t, v);
         window.speakVietForHindi(v);
-        window.stopAllListeningGlobal();
+        
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningAnDo = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
@@ -82,10 +87,15 @@ window.startListeningVietAnDo = (cb) => {
     
     vietAnDoCallback = cb;
     const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const h = await callApi_HI(`Dịch câu sau đây từ Việt sang Hindi (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietAnDoCallback) vietAnDoCallback(t, h);
         window.speakHindi(h);
-        window.stopAllListeningGlobal();
+        
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningVietAnDo = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;

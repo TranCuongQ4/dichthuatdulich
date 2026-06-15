@@ -59,10 +59,15 @@ window.startListeningMalaiViet = (cb) => {
     
     malaiVietCallback = cb;
     const rec = window.sharedCreateGenericRecognition("ms-MY", async (t) => {
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const v = await callApi_MS(`Dịch câu sau đây từ Malaysia sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (malaiVietCallback) malaiVietCallback(t, v);
         window.speakVietForMalay(v);
-        window.stopAllListeningGlobal();
+        
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningMalai = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
@@ -82,10 +87,15 @@ window.startListeningVietMalai = (cb) => {
     
     vietMalaiCallback = cb;
     const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const m = await callApi_MS(`Dịch câu sau đây từ Việt sang Malaysia (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietMalaiCallback) vietMalaiCallback(t, m);
         window.speakMalay(m);
-        window.stopAllListeningGlobal();
+        
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningVietMalai = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;

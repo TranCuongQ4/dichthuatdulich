@@ -59,10 +59,15 @@ window.startListeningTrungViet = (cb) => {
     
     trungVietCallback = cb;
     const rec = window.sharedCreateGenericRecognition("zh-CN", async (t) => {
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const v = await callApi_CN(`Dịch câu sau đây từ Trung sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (trungVietCallback) trungVietCallback(t, v);
         window.speakVietForChinese(v);
-        window.stopAllListeningGlobal();
+        
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningTrung = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
@@ -82,10 +87,15 @@ window.startListeningVietTrung = (cb) => {
     
     vietTrungCallback = cb;
     const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+        if (window.globalCurrentRecognition !== rec) return;
+        
         const c = await callApi_CN(`Dịch câu sau đây từ Việt sang Trung (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietTrungCallback) vietTrungCallback(t, c);
         window.speakChinese(c);
-        window.stopAllListeningGlobal();
+        
+        if (window.globalCurrentRecognition === rec && !rec._ended) {
+            window.stopAllListeningGlobal();
+        }
     }, () => { 
         isListeningVietTrung = false;
         if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
