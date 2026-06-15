@@ -40,7 +40,7 @@ var vietAnDoCallback = null;
 
 window.speakVietForHindi = function(text) {
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    try { window.speechSynthesis.cancel(); } catch(e){}
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'vi-VN';
     window.speechSynthesis.speak(u);
@@ -48,7 +48,7 @@ window.speakVietForHindi = function(text) {
 
 window.speakHindi = function(text) {
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    try { window.speechSynthesis.cancel(); } catch(e){}
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'hi-IN';
     window.speechSynthesis.speak(u);
@@ -56,58 +56,48 @@ window.speakHindi = function(text) {
 
 window.startListeningAnDoViet = (cb) => {
     window.stopAllListeningGlobal();
-    if (window.speechSynthesis) {
-        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
-    }
     
-    setTimeout(() => {
-        anDoVietCallback = cb;
-        const rec = window.sharedCreateGenericRecognition("hi-IN", async (t) => {
-            const v = await callApi_HI(`Dịch câu sau đây từ Hindi sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-            if (anDoVietCallback) anDoVietCallback(t, v);
-            window.speakVietForHindi(v);
-            window.stopAllListeningGlobal();
-        }, () => { 
-            isListeningAnDo = false;
-            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-        });
-        
-        if (rec) {
-            window.globalCurrentRecognition = rec;
-            try {
-                rec.start();
-                isListeningAnDo = true;
-            } catch(e) { console.error(e); }
-        }
-    }, 50);
+    anDoVietCallback = cb;
+    const rec = window.sharedCreateGenericRecognition("hi-IN", async (t) => {
+        const v = await callApi_HI(`Dịch câu sau đây từ Hindi sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+        if (anDoVietCallback) anDoVietCallback(t, v);
+        window.speakVietForHindi(v);
+        window.stopAllListeningGlobal();
+    }, () => { 
+        isListeningAnDo = false;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+    });
+    
+    if (rec) {
+        window.globalCurrentRecognition = rec;
+        try {
+            rec.start();
+            isListeningAnDo = true;
+        } catch(e) { console.error(e); }
+    }
 };
 
 window.startListeningVietAnDo = (cb) => {
     window.stopAllListeningGlobal();
-    if (window.speechSynthesis) {
-        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
-    }
     
-    setTimeout(() => {
-        vietAnDoCallback = cb;
-        const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
-            const h = await callApi_HI(`Dịch câu sau đây từ Việt sang Hindi (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-            if (vietAnDoCallback) vietAnDoCallback(t, h);
-            window.speakHindi(h);
-            window.stopAllListeningGlobal();
-        }, () => { 
-            isListeningVietAnDo = false;
-            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-        });
-        
-        if (rec) {
-            window.globalCurrentRecognition = rec;
-            try {
-                rec.start();
-                isListeningVietAnDo = true;
-            } catch(e) { console.error(e); }
-        }
-    }, 50);
+    vietAnDoCallback = cb;
+    const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+        const h = await callApi_HI(`Dịch câu sau đây từ Việt sang Hindi (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+        if (vietAnDoCallback) vietAnDoCallback(t, h);
+        window.speakHindi(h);
+        window.stopAllListeningGlobal();
+    }, () => { 
+        isListeningVietAnDo = false;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+    });
+    
+    if (rec) {
+        window.globalCurrentRecognition = rec;
+        try {
+            rec.start();
+            isListeningVietAnDo = true;
+        } catch(e) { console.error(e); }
+    }
 };
 
 console.log("tiengando.js đã sẵn sàng");

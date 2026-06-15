@@ -30,10 +30,10 @@ async function callApi(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-// Quản lý phiên micro toàn cục duy nhất
+// Quản lý phiên recognition toàn cục
 window.globalCurrentRecognition = null;
 
-// Hàm tạo Recognition dùng chung chống trùng lặp ghi đè hàm tự do
+// Hàm khởi tạo đối tượng Micro chuẩn hóa, không gọi lệnh điều khiển âm thanh ở đây
 window.sharedCreateGenericRecognition = function(langCode, onResult, onEnd) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -64,13 +64,14 @@ window.sharedCreateGenericRecognition = function(langCode, onResult, onEnd) {
     return recognition;
 };
 
-// Hàm tắt toàn bộ mic đang chạy trước khi bật mic mới
+// Hàm tắt mic an toàn tuyệt đối
 window.stopAllListeningGlobal = () => {
     if (window.globalCurrentRecognition) {
         try {
+            window.globalCurrentRecognition.onend = null; // Gỡ bỏ sự kiện end để tránh lặp luồng
             window.globalCurrentRecognition.abort();
         } catch(e) {
-            console.log("Không thể abort micro cũ:", e);
+            console.log("Không thể giải phóng mic cũ:", e);
         }
         window.globalCurrentRecognition = null;
     }
@@ -86,7 +87,7 @@ var vietAnhCallback = null;
 
 window.speakVietForEnglish = function(text) {
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    try { window.speechSynthesis.cancel(); } catch(e){}
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'vi-VN';
     window.speechSynthesis.speak(u);
@@ -94,69 +95,58 @@ window.speakVietForEnglish = function(text) {
 
 window.speakEnglish = function(text) {
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    try { window.speechSynthesis.cancel(); } catch(e){}
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US';
     window.speechSynthesis.speak(u);
 };
 
 window.startListeningAnhViet = (cb) => {
+    // Tắt mic cũ trước
     window.stopAllListeningGlobal();
     
-    // Sử dụng setTimeout nhỏ để tách biệt luồng xử lý phần cứng âm thanh mồi, tránh chặn mic
-    if (window.speechSynthesis) {
-        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
-    }
+    anhVietCallback = cb;
+    const rec = window.sharedCreateGenericRecognition("en-US", async (t) => {
+        const v = await callApi(`Dịch câu sau đây từ Anh sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+        if (anhVietCallback) anhVietCallback(t, v);
+        window.speakVietForEnglish(v);
+        window.stopAllListeningGlobal();
+    }, () => { 
+        isListeningAnh = false;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+    });
     
-    setTimeout(() => {
-        anhVietCallback = cb;
-        const rec = window.sharedCreateGenericRecognition("en-US", async (t) => {
-            const v = await callApi(`Dịch câu sau đây từ Anh sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-            if (anhVietCallback) anhVietCallback(t, v);
-            window.speakVietForEnglish(v);
-            window.stopAllListeningGlobal();
-        }, () => { 
-            isListeningAnh = false;
-            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-        });
-        
-        if (rec) {
-            window.globalCurrentRecognition = rec;
-            try {
-                rec.start();
-                isListeningAnh = true;
-            } catch(e) { console.error(e); }
-        }
-    }, 50);
+    if (rec) {
+        window.globalCurrentRecognition = rec;
+        try {
+            // Thực hiện start trực tiếp không bọc qua setTimeout hay speechSynthesis mồi
+            rec.start();
+            isListeningAnh = true;
+        } catch(e) { console.error("Lỗi kích hoạt mic:", e); }
+    }
 };
 
 window.startListeningVietAnh = (cb) => {
     window.stopAllListeningGlobal();
     
-    if (window.speechSynthesis) {
-        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
-    }
+    vietAnhCallback = cb;
+    const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+        const e = await callApi(`Dịch câu sau đây từ Việt sang Anh (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+        if (vietAnhCallback) vietAnhCallback(t, e);
+        window.speakEnglish(e);
+        window.stopAllListeningGlobal();
+    }, () => { 
+        isListeningViet = false;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+    });
     
-    setTimeout(() => {
-        vietAnhCallback = cb;
-        const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
-            const e = await callApi(`Dịch câu sau đây từ Việt sang Anh (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-            if (vietAnhCallback) vietAnhCallback(t, e);
-            window.speakEnglish(e);
-            window.stopAllListeningGlobal();
-        }, () => { 
-            isListeningViet = false;
-            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-        });
-        
-        if (rec) {
-            window.globalCurrentRecognition = rec;
-            try {
-                rec.start();
-                isListeningViet = true;
-            } catch(e) { console.error(e); }
-        }
-    }, 50);
+    if (rec) {
+        window.globalCurrentRecognition = rec;
+        try {
+            rec.start();
+            isListeningViet = true;
+        } catch(e) { console.error("Lỗi kích hoạt mic:", e); }
+    }
 };
 
-console.log("tienganh.js đã sẵn sàng kích hoạt");
+console.log("tienganh.js đã đồng bộ hóa hệ thống");
