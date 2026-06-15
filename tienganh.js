@@ -1,10 +1,11 @@
 // tienganh.js - Xử lý Web Audio (Microphone), Groq API dịch thuật
-// ========== TÍCH HỢP SẴN HÀM GỌI API ==========
+// ========== CẤU HÌNH CLOUDFLARE WORKER ==========
 const MODEL_NAME = "llama3-70b-8192";
+const WORKER_URL = "https://dichthuatdulich.cuongprovuidulieu.workers.dev";
 
 async function callApi(prompt) {
     try {
-        const response = await fetch("/api/groq-proxy", {
+        const response = await fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -24,6 +25,13 @@ async function callApi(prompt) {
                 max_tokens: 300
             })
         });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Worker error:", errorData);
+            return `[Lỗi ${response.status}]`;
+        }
+        
         const data = await response.json();
         
         if (data.choices && data.choices[0] && data.choices[0].message) {
@@ -52,7 +60,6 @@ let isListeningViet = false;
 let anhVietCallback = null;
 let vietAnhCallback = null;
 
-// Hàm dịch
 async function translateText(text, sourceLang, targetLang) {
     let prompt = "";
     if (sourceLang === "English" && targetLang === "Vietnamese") {
@@ -63,7 +70,6 @@ async function translateText(text, sourceLang, targetLang) {
     return await callApi(prompt);
 }
 
-// Tổng hợp giọng nói
 window.speakText = function(text, lang = 'vi-VN') {
     if (!window.speechSynthesis) {
         console.warn("Trình duyệt không hỗ trợ speechSynthesis");
@@ -81,7 +87,6 @@ window.speakText = function(text, lang = 'vi-VN') {
     }, 100);
 };
 
-// Hàm khởi tạo nhận diện giọng nói
 function createRecognition(langCode, onResult, onEnd) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -128,7 +133,6 @@ function createRecognition(langCode, onResult, onEnd) {
     return recognition;
 }
 
-// Dừng lắng nghe
 window.stopAnhVietListening = () => {
     if (recognitionAnhViet) {
         try { recognitionAnhViet.stop(); } catch(e) {}
@@ -147,7 +151,6 @@ window.stopVietAnhListening = () => {
     console.log("Đã dừng nghe Việt-Anh");
 };
 
-// Bắt đầu nghe Anh -> Việt
 window.startListeningAnhViet = async (callback) => {
     if (isListeningAnh) {
         console.log("Đang nghe Anh-Việt rồi");
@@ -192,7 +195,6 @@ window.startListeningAnhViet = async (callback) => {
     }
 };
 
-// Bắt đầu nghe Việt -> Anh
 window.startListeningVietAnh = async (callback) => {
     if (isListeningViet) {
         console.log("Đang nghe Việt-Anh rồi");

@@ -1,10 +1,11 @@
 // tiengtrung.js - Xử lý dịch thuật tiếng Trung (Trung-Việt, Việt-Trung)
-// ========== TÍCH HỢP SẴN HÀM GỌI API ==========
+// ========== CẤU HÌNH CLOUDFLARE WORKER ==========
 const MODEL_NAME_CN = "llama3-70b-8192";
+const WORKER_URL = "https://dichthuatdulich.cuongprovuidulieu.workers.dev";
 
 async function callApi_CN(prompt) {
     try {
-        const response = await fetch("/api/groq-proxy", {
+        const response = await fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -12,10 +13,7 @@ async function callApi_CN(prompt) {
                 messages: [
                     {
                         role: "system",
-                        content: `Bạn là công cụ dịch thuật tiếng Trung - Việt. QUY TẮC NGHIÊM NGẶT:
-1. KHÔNG được thêm thẻ <think>
-2. KHÔNG được giải thích
-3. CHỈ trả về câu đã dịch`
+                        content: `Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, KHÔNG giải thích.`
                     },
                     { role: "user", content: prompt }
                 ],
@@ -23,6 +21,13 @@ async function callApi_CN(prompt) {
                 max_tokens: 300
             })
         });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Worker error:", errorData);
+            return `[Lỗi ${response.status}]`;
+        }
+        
         const data = await response.json();
         
         if (data.choices && data.choices[0] && data.choices[0].message) {

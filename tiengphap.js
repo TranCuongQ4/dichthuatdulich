@@ -1,10 +1,11 @@
 // tiengphap.js - Xử lý dịch thuật tiếng Pháp
-// ========== TÍCH HỢP SẴN HÀM GỌI API ==========
+// ========== CẤU HÌNH CLOUDFLARE WORKER ==========
 const MODEL_NAME_FR = "llama3-70b-8192";
+const WORKER_URL = "https://dichthuatdulich.cuongprovuidulieu.workers.dev";
 
 async function callApi_FR(prompt) {
     try {
-        const response = await fetch("/api/groq-proxy", {
+        const response = await fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -17,7 +18,15 @@ async function callApi_FR(prompt) {
                 max_tokens: 300
             })
         });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Worker error:", errorData);
+            return `[Lỗi ${response.status}]`;
+        }
+        
         const data = await response.json();
+        
         if (data.choices && data.choices[0] && data.choices[0].message) {
             let translated = data.choices[0].message.content.trim();
             translated = translated.replace(/<think>[\s\S]*?<\/think>/gi, '');
@@ -28,6 +37,7 @@ async function callApi_FR(prompt) {
         }
         return "[Lỗi dịch]";
     } catch (err) {
+        console.error("API error:", err);
         return "[Lỗi kết nối]";
     }
 }
