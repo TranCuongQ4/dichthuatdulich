@@ -1,6 +1,5 @@
 // tienganh.js - Xử lý Web Audio (Microphone), Groq API dịch thuật
-
-const MODEL_NAME = "qwen/qwen3-32b";
+// MODEL_NAME và callGroqAPI được định nghĩa trong config.js
 
 let recognitionAnhViet = null;
 let recognitionVietAnh = null;
@@ -10,7 +9,7 @@ let isListeningViet = false;
 let anhVietCallback = null;
 let vietAnhCallback = null;
 
-// Hàm gọi Groq dịch - CẤM TUYỆT ĐỐI SUY NGHĨ
+// Hàm dịch - dùng callGroqAPI từ config.js
 async function translateText(text, sourceLang, targetLang) {
     let prompt = "";
     if (sourceLang === "English" && targetLang === "Vietnamese") {
@@ -19,63 +18,8 @@ async function translateText(text, sourceLang, targetLang) {
         prompt = `Dịch câu sau từ tiếng Việt sang tiếng Anh. CHỈ TRẢ VỀ ĐÚNG CÂU TIẾNG ANH, KHÔNG THÊM GÌ KHÁC.\n\nTiếng Việt: ${text}\n\nTiếng Anh:`;
     }
     
-    try {
-        const response = await fetch("https://dichthuatdulich.cuongprovuidulieu.workers.dev", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-                model: MODEL_NAME,
-                messages: [
-                    { 
-                        role: "system", 
-                        content: `Bạn là công cụ dịch thuật. QUY TẮC NGHIÊM NGẶT:
-1. KHÔNG được thêm bất kỳ thẻ <think> hay </think>
-2. KHÔNG được giải thích, KHÔNG được chú thích
-3. KHÔNG được thêm từ "Dịch:", "Answer:", "Result:"
-4. CHỈ trả về duy nhất câu đã dịch
-5. Nếu câu gốc là "tôi muốn đi du lịch ở hongkong" thì chỉ trả về "I want to travel to Hong Kong"
-6. TUYỆT ĐỐI KHÔNG SUY NGHĨ, CHỈ DỊCH THUẦN TÚY`
-                    },
-                    { 
-                        role: "user", 
-                        content: prompt 
-                    }
-                ],
-                temperature: 0,
-                max_tokens: 200
-            })
-        });
-        const data = await response.json();
-        
-        console.log("API Response:", data);
-        
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-            let translated = data.choices[0].message.content.trim();
-            
-            // Loại bỏ thẻ <think> nếu vẫn còn
-            translated = translated.replace(/<think>[\s\S]*?<\/think>/gi, '');
-            // Loại bỏ các từ thừa
-            translated = translated.replace(/^(dịch|translation|translate|kết quả|result|answer):\s*/i, '');
-            // Loại bỏ dấu ngoặc
-            translated = translated.replace(/^["']|["']$/g, '');
-            
-            // Nếu kết quả vẫn còn rác, thử lấy câu cuối cùng
-            if (translated.includes('\n')) {
-                const lines = translated.split('\n');
-                translated = lines[lines.length - 1].trim();
-            }
-            
-            return translated || (sourceLang === "English" ? "[Lỗi]" : "[Error]");
-        } else {
-            console.error("Lỗi Groq:", data);
-            return sourceLang === "English" ? "[Lỗi dịch]" : "[Translation error]";
-        }
-    } catch (err) {
-        console.error("API error:", err);
-        return sourceLang === "English" ? "[Lỗi kết nối]" : "[Connection error]";
-    }
+    // Sử dụng hàm từ config.js
+    return await callGroqAPI(prompt, 0, 200);
 }
 
 // Tổng hợp giọng nói
@@ -252,4 +196,4 @@ window.startListeningVietAnh = async (callback) => {
     }
 };
 
-console.log("tienganh.js đã sẵn sàng - Đã cấm thẻ <think>");
+console.log("tienganh.js đã sẵn sàng - Dùng config.js để cấu hình");

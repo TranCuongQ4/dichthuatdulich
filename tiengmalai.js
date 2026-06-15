@@ -1,6 +1,5 @@
 // tiengmalai.js - Xử lý dịch thuật tiếng Malaysia (Bahasa) - Malai-Việt, Việt-Malai
-
-const MODEL_NAME_MS = "qwen/qwen3-32b";
+// MODEL_NAME và callGroqAPI được định nghĩa trong config.js
 
 let recognitionMalaiViet = null;
 let recognitionVietMalai = null;
@@ -10,7 +9,7 @@ let isListeningVietMalai = false;
 let malaiVietCallback = null;
 let vietMalaiCallback = null;
 
-// Hàm dịch tiếng Malaysia
+// Hàm dịch - dùng callGroqAPI từ config.js
 async function translateMalay(text, sourceLang, targetLang) {
     let prompt = "";
     if (sourceLang === "Malay" && targetLang === "Vietnamese") {
@@ -19,58 +18,8 @@ async function translateMalay(text, sourceLang, targetLang) {
         prompt = `Dịch câu sau từ tiếng Việt sang tiếng Malaysia (Bahasa Melayu). CHỈ TRẢ VỀ ĐÚNG CÂU TIẾNG MALAYSIA, KHÔNG THÊM GÌ KHÁC.\n\nTiếng Việt: ${text}\n\nTiếng Malaysia:`;
     }
     
-    try {
-        const response = await fetch("https://dichthuatdulich.cuongprovuidulieu.workers.dev", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-                model: MODEL_NAME_MS,
-                messages: [
-                    { 
-                        role: "system", 
-                        content: `Bạn là công cụ dịch thuật tiếng Malaysia - Việt. QUY TẮC NGHIÊM NGẶT:
-1. KHÔNG được thêm bất kỳ thẻ <think> hay </think>
-2. KHÔNG được giải thích, KHÔNG được chú thích
-3. KHÔNG được thêm từ "Dịch:", "Answer:", "Result:", "Double-checking"
-4. CHỈ trả về duy nhất câu đã dịch
-5. Dịch MALAY -> VIỆT hoặc VIỆT -> MALAY chính xác, tự nhiên
-6. TUYỆT ĐỐI KHÔNG SUY NGHĨ, CHỈ DỊCH THUẦN TÚY`
-                    },
-                    { 
-                        role: "user", 
-                        content: prompt 
-                    }
-                ],
-                temperature: 0,
-                max_tokens: 300
-            })
-        });
-        const data = await response.json();
-        
-        console.log("API Response Malay:", data);
-        
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-            let translated = data.choices[0].message.content.trim();
-            translated = translated.replace(/<think>[\s\S]*?<\/think>/gi, '');
-            translated = translated.replace(/^(dịch|translation|translate|kết quả|result|answer|double-checking|Double-checking):\s*/i, '');
-            translated = translated.replace(/^["']|["']$/g, '');
-            
-            if (translated.includes('\n')) {
-                const lines = translated.split('\n');
-                translated = lines[lines.length - 1].trim();
-            }
-            
-            return translated || (sourceLang === "Malay" ? "[Lỗi dịch]" : "[Ralat terjemahan]");
-        } else {
-            console.error("Lỗi Groq Malay:", data);
-            return sourceLang === "Malay" ? "[Lỗi dịch]" : "[Ralat terjemahan]";
-        }
-    } catch (err) {
-        console.error("API Malay error:", err);
-        return sourceLang === "Malay" ? "[Lỗi kết nối]" : "[Ralat sambungan]";
-    }
+    // Sử dụng hàm từ config.js
+    return await callGroqAPI(prompt, 0, 300);
 }
 
 // Hàm kiểm tra và lấy giọng đọc tiếng Malaysia
@@ -80,7 +29,6 @@ function getMalayVoice() {
     const voices = window.speechSynthesis.getVoices();
     console.log("Các giọng đọc có sẵn:", voices.map(v => `${v.lang} - ${v.name}`));
     
-    // Thử tìm giọng Malaysia
     let malayVoice = voices.find(voice => 
         voice.lang === 'ms-MY' || 
         voice.lang === 'ms' || 
@@ -115,8 +63,6 @@ function speakMalay(text, showToastCallback) {
         window.speechSynthesis.cancel();
         
         const utterance = new SpeechSynthesisUtterance(text);
-        
-        // Thử lấy giọng Malaysia
         const malayVoice = getMalayVoice();
         if (malayVoice) {
             utterance.voice = malayVoice;
@@ -309,4 +255,4 @@ function createRecognitionMalay(langCode, onResult, onEnd) {
 // Export hàm speakMalay để script.js có thể gọi
 window.speakMalay = speakMalay;
 
-console.log("tiengmalai.js đã sẵn sàng - Hỗ trợ dịch Malai-Việt, Việt-Malai (Bahasa Malaysia)");
+console.log("tiengmalai.js đã sẵn sàng - Dùng config.js để cấu hình");

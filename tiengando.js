@@ -1,6 +1,5 @@
 // tiengando.js - Xử lý dịch thuật tiếng Ấn Độ (Hindi) - Ấn-Việt, Việt-Ấn
-
-const MODEL_NAME_HI = "qwen/qwen3-32b";
+// MODEL_NAME và callGroqAPI được định nghĩa trong config.js
 
 let recognitionAnDoViet = null;
 let recognitionVietAnDo = null;
@@ -10,7 +9,7 @@ let isListeningVietAnDo = false;
 let anDoVietCallback = null;
 let vietAnDoCallback = null;
 
-// Hàm dịch tiếng Ấn Độ (Hindi) - CẤM TUYỆT ĐỐI SUY NGHĨ
+// Hàm dịch - dùng callGroqAPI từ config.js
 async function translateHindi(text, sourceLang, targetLang) {
     let prompt = "";
     if (sourceLang === "Hindi" && targetLang === "Vietnamese") {
@@ -19,66 +18,9 @@ async function translateHindi(text, sourceLang, targetLang) {
         prompt = `Dịch câu sau từ tiếng Việt sang tiếng Hindi (Ấn Độ). CHỈ TRẢ VỀ ĐÚNG CÂU TIẾNG HINDI, KHÔNG THÊM GÌ KHÁC.\n\nTiếng Việt: ${text}\n\nTiếng Hindi:`;
     }
     
-    try {
-        const response = await fetch("https://dichthuatdulich.cuongprovuidulieu.workers.dev", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-                model: MODEL_NAME_HI,
-                messages: [
-                    { 
-                        role: "system", 
-                        content: `Bạn là công cụ dịch thuật. QUY TẮC NGHIÊM NGẶT:
-1. KHÔNG được thêm bất kỳ thẻ <think> hay </think>
-2. KHÔNG được giải thích, KHÔNG được chú thích
-3. KHÔNG được thêm từ "Dịch:", "Answer:", "Result:", "Double-checking"
-4. CHỈ trả về duy nhất câu đã dịch
-5. TUYỆT ĐỐI KHÔNG SUY NGHĨ, CHỈ DỊCH THUẦN TÚY`
-                    },
-                    { 
-                        role: "user", 
-                        content: prompt 
-                    }
-                ],
-                temperature: 0,
-                max_tokens: 200
-            })
-        });
-        const data = await response.json();
-        
-        console.log("API Response Hindi:", data);
-        
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-            let translated = data.choices[0].message.content.trim();
-            
-            // Loại bỏ thẻ <think> nếu vẫn còn
-            translated = translated.replace(/<think>[\s\S]*?<\/think>/gi, '');
-            // Loại bỏ các từ thừa như "Double-checking:", "Dịch:", v.v
-            translated = translated.replace(/^(dịch|translation|translate|kết quả|result|answer|double-checking|Double-checking):\s*/i, '');
-            // Loại bỏ dấu ngoặc
-            translated = translated.replace(/^["']|["']$/g, '');
-            
-            // Nếu kết quả vẫn còn rác, thử lấy câu cuối cùng
-            if (translated.includes('\n')) {
-                const lines = translated.split('\n');
-                translated = lines[lines.length - 1].trim();
-            }
-            
-            return translated || (sourceLang === "Hindi" ? "[Lỗi]" : "[Error]");
-        } else {
-            console.error("Lỗi Groq Hindi:", data);
-            return sourceLang === "Hindi" ? "[Lỗi dịch]" : "[Translation error]";
-        }
-    } catch (err) {
-        console.error("API Hindi error:", err);
-        return sourceLang === "Hindi" ? "[Lỗi kết nối]" : "[Connection error]";
-    }
+    // Sử dụng hàm từ config.js
+    return await callGroqAPI(prompt, 0, 200);
 }
-
-// Tổng hợp giọng nói (dùng chung từ window.speakText)
-// window.speakText đã được định nghĩa trong tienganh.js
 
 // Hàm khởi tạo nhận diện giọng nói tiếng Hindi
 function createRecognitionHindi(langCode, onResult, onEnd) {
@@ -237,4 +179,4 @@ window.startListeningVietAnDo = async (callback) => {
     }
 };
 
-console.log("tiengando.js đã sẵn sàng - Hỗ trợ dịch Ấn-Việt, Việt-Ấn (Hindi) - Đã cấm suy nghĩ");
+console.log("tiengando.js đã sẵn sàng - Dùng config.js để cấu hình");

@@ -1,6 +1,5 @@
 // tiengphap.js - Xử lý dịch thuật tiếng Pháp - Pháp-Việt, Việt-Pháp
-
-const MODEL_NAME_FR = "qwen/qwen3-32b";
+// MODEL_NAME và callGroqAPI được định nghĩa trong config.js
 
 let recognitionPhapViet = null;
 let recognitionVietPhap = null;
@@ -10,7 +9,7 @@ let isListeningVietPhap = false;
 let phapVietCallback = null;
 let vietPhapCallback = null;
 
-// Hàm dịch tiếng Pháp
+// Hàm dịch - dùng callGroqAPI từ config.js
 async function translateFrench(text, sourceLang, targetLang) {
     let prompt = "";
     if (sourceLang === "French" && targetLang === "Vietnamese") {
@@ -19,58 +18,8 @@ async function translateFrench(text, sourceLang, targetLang) {
         prompt = `Dịch câu sau từ tiếng Việt sang tiếng Pháp. CHỈ TRẢ VỀ ĐÚNG CÂU TIẾNG PHÁP, KHÔNG THÊM GÌ KHÁC.\n\nTiếng Việt: ${text}\n\nTiếng Pháp:`;
     }
     
-    try {
-        const response = await fetch("https://dichthuatdulich.cuongprovuidulieu.workers.dev", {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-                model: MODEL_NAME_FR,
-                messages: [
-                    { 
-                        role: "system", 
-                        content: `Bạn là công cụ dịch thuật tiếng Pháp - Việt. QUY TẮC NGHIÊM NGẶT:
-1. KHÔNG được thêm bất kỳ thẻ <think> hay </think>
-2. KHÔNG được giải thích, KHÔNG được chú thích
-3. KHÔNG được thêm từ "Dịch:", "Answer:", "Result:", "Double-checking"
-4. CHỈ trả về duy nhất câu đã dịch
-5. Dịch PHÁP -> VIỆT hoặc VIỆT -> PHÁP chính xác, tự nhiên
-6. TUYỆT ĐỐI KHÔNG SUY NGHĨ, CHỈ DỊCH THUẦN TÚY`
-                    },
-                    { 
-                        role: "user", 
-                        content: prompt 
-                    }
-                ],
-                temperature: 0,
-                max_tokens: 300
-            })
-        });
-        const data = await response.json();
-        
-        console.log("API Response French:", data);
-        
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-            let translated = data.choices[0].message.content.trim();
-            translated = translated.replace(/<think>[\s\S]*?<\/think>/gi, '');
-            translated = translated.replace(/^(dịch|translation|translate|kết quả|result|answer|double-checking|Double-checking):\s*/i, '');
-            translated = translated.replace(/^["']|["']$/g, '');
-            
-            if (translated.includes('\n')) {
-                const lines = translated.split('\n');
-                translated = lines[lines.length - 1].trim();
-            }
-            
-            return translated || (sourceLang === "French" ? "[Lỗi dịch]" : "[Erreur de traduction]");
-        } else {
-            console.error("Lỗi Groq French:", data);
-            return sourceLang === "French" ? "[Lỗi dịch]" : "[Erreur de traduction]";
-        }
-    } catch (err) {
-        console.error("API French error:", err);
-        return sourceLang === "French" ? "[Lỗi kết nối]" : "[Erreur de connexion]";
-    }
+    // Sử dụng hàm từ config.js
+    return await callGroqAPI(prompt, 0, 300);
 }
 
 // Hàm kiểm tra và lấy giọng đọc tiếng Pháp
@@ -78,7 +27,6 @@ function getFrenchVoice() {
     if (!window.speechSynthesis) return null;
     
     const voices = window.speechSynthesis.getVoices();
-    // Tìm giọng Pháp chuẩn
     let frenchVoice = voices.find(voice => 
         voice.lang === 'fr-FR' || 
         voice.lang.startsWith('fr-') ||
@@ -111,8 +59,6 @@ function speakFrench(text, showToastCallback) {
         window.speechSynthesis.cancel();
         
         const utterance = new SpeechSynthesisUtterance(text);
-        
-        // Thử lấy giọng Pháp
         const frenchVoice = getFrenchVoice();
         if (frenchVoice) {
             utterance.voice = frenchVoice;
@@ -305,4 +251,4 @@ window.startListeningVietPhap = async (callback) => {
 // Export hàm speakFrench
 window.speakFrench = speakFrench;
 
-console.log("tiengphap.js đã sẵn sàng - Hỗ trợ dịch Pháp-Việt, Việt-Pháp");
+console.log("tiengphap.js đã sẵn sàng - Dùng config.js để cấu hình");
