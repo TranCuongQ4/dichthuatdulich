@@ -8,8 +8,7 @@ const urlsToCache = [
     './tienganh.js',
     './tiengtrung.js',
     './tiengando.js',
-    './tiengmalai.js',
-	'./config.js',
+    './tiengmalai.js',	
     './tiengphap.js'
 ];
 

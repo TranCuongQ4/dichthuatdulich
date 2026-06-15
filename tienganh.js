@@ -1,6 +1,49 @@
 // tienganh.js - Xử lý Web Audio (Microphone), Groq API dịch thuật
-// MODEL_NAME và callGroqAPI được định nghĩa trong config.js
+// ========== TÍCH HỢP SẴN HÀM GỌI API ==========
+const MODEL_NAME = "llama3-70b-8192";
 
+async function callApi(prompt) {
+    try {
+        const response = await fetch("/api/groq-proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: MODEL_NAME,
+                messages: [
+                    {
+                        role: "system",
+                        content: `Bạn là công cụ dịch thuật. QUY TẮC NGHIÊM NGẶT:
+1. KHÔNG được thêm bất kỳ thẻ <think> hay </think>
+2. KHÔNG được giải thích, KHÔNG được chú thích
+3. KHÔNG được thêm từ "Dịch:", "Answer:", "Result:", "Double-checking"
+4. CHỈ trả về duy nhất câu đã dịch`
+                    },
+                    { role: "user", content: prompt }
+                ],
+                temperature: 0,
+                max_tokens: 300
+            })
+        });
+        const data = await response.json();
+        
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            let translated = data.choices[0].message.content.trim();
+            translated = translated.replace(/<think>[\s\S]*?<\/think>/gi, '');
+            translated = translated.replace(/^(dịch|translation|translate|kết quả|result|answer|double-checking|Double-checking):\s*/i, '');
+            translated = translated.replace(/^["']|["']$/g, '');
+            if (translated.includes('\n')) {
+                translated = translated.split('\n').pop().trim();
+            }
+            return translated;
+        }
+        return "[Lỗi dịch]";
+    } catch (err) {
+        console.error("API error:", err);
+        return "[Lỗi kết nối]";
+    }
+}
+
+// ========== PHẦN CODE GỐC (GIỮ NGUYÊN) ==========
 let recognitionAnhViet = null;
 let recognitionVietAnh = null;
 let isListeningAnh = false;
@@ -9,7 +52,7 @@ let isListeningViet = false;
 let anhVietCallback = null;
 let vietAnhCallback = null;
 
-// Hàm dịch - dùng callGroqAPI từ config.js
+// Hàm dịch
 async function translateText(text, sourceLang, targetLang) {
     let prompt = "";
     if (sourceLang === "English" && targetLang === "Vietnamese") {
@@ -17,9 +60,7 @@ async function translateText(text, sourceLang, targetLang) {
     } else {
         prompt = `Dịch câu sau từ tiếng Việt sang tiếng Anh. CHỈ TRẢ VỀ ĐÚNG CÂU TIẾNG ANH, KHÔNG THÊM GÌ KHÁC.\n\nTiếng Việt: ${text}\n\nTiếng Anh:`;
     }
-    
-    // Sử dụng hàm từ config.js
-    return await window.callApi(prompt, 0, 200);
+    return await callApi(prompt);
 }
 
 // Tổng hợp giọng nói
@@ -196,4 +237,4 @@ window.startListeningVietAnh = async (callback) => {
     }
 };
 
-console.log("tienganh.js đã sẵn sàng - Dùng config.js để cấu hình");
+console.log("tienganh.js đã sẵn sàng");

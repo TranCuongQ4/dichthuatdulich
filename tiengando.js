@@ -1,28 +1,58 @@
-// tiengando.js - Xử lý dịch thuật tiếng Ấn Độ (Hindi) - Ấn-Việt, Việt-Ấn
-// MODEL_NAME và callGroqAPI được định nghĩa trong config.js
+// tiengando.js - Xử lý dịch thuật tiếng Ấn Độ (Hindi)
+// ========== TÍCH HỢP SẴN HÀM GỌI API ==========
+const MODEL_NAME_HI = "llama3-70b-8192";
 
+async function callApi_HI(prompt) {
+    try {
+        const response = await fetch("/api/groq-proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: MODEL_NAME_HI,
+                messages: [
+                    {
+                        role: "system",
+                        content: `Bạn là công cụ dịch thuật. KHÔNG giải thích, CHỈ trả về câu đã dịch.`
+                    },
+                    { role: "user", content: prompt }
+                ],
+                temperature: 0,
+                max_tokens: 300
+            })
+        });
+        const data = await response.json();
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            let translated = data.choices[0].message.content.trim();
+            translated = translated.replace(/<think>[\s\S]*?<\/think>/gi, '');
+            translated = translated.replace(/^(dịch|translation|translate|kết quả|answer|double-checking):\s*/i, '');
+            translated = translated.replace(/^["']|["']$/g, '');
+            if (translated.includes('\n')) translated = translated.split('\n').pop().trim();
+            return translated;
+        }
+        return "[Lỗi dịch]";
+    } catch (err) {
+        return "[Lỗi kết nối]";
+    }
+}
+
+// ========== PHẦN CODE GỐC (GIỮ NGUYÊN LOGIC) ==========
 let recognitionAnDoViet = null;
 let recognitionVietAnDo = null;
 let isListeningAnDo = false;
 let isListeningVietAnDo = false;
-
 let anDoVietCallback = null;
 let vietAnDoCallback = null;
 
-// Hàm dịch - dùng callGroqAPI từ config.js
 async function translateHindi(text, sourceLang, targetLang) {
     let prompt = "";
     if (sourceLang === "Hindi" && targetLang === "Vietnamese") {
-        prompt = `Dịch câu sau từ tiếng Hindi (Ấn Độ) sang tiếng Việt. CHỈ TRẢ VỀ ĐÚNG CÂU TIẾNG VIỆT, KHÔNG THÊM GÌ KHÁC.\n\nTiếng Hindi: ${text}\n\nTiếng Việt:`;
+        prompt = `Dịch từ Hindi sang Việt. CHỈ TRẢ VỀ CÂU TIẾNG VIỆT:\n\nHindi: ${text}\n\nTiếng Việt:`;
     } else {
-        prompt = `Dịch câu sau từ tiếng Việt sang tiếng Hindi (Ấn Độ). CHỈ TRẢ VỀ ĐÚNG CÂU TIẾNG HINDI, KHÔNG THÊM GÌ KHÁC.\n\nTiếng Việt: ${text}\n\nTiếng Hindi:`;
+        prompt = `Dịch từ Việt sang Hindi. CHỈ TRẢ VỀ CÂU TIẾNG HINDI:\n\nTiếng Việt: ${text}\n\nHindi:`;
     }
-    
-    // Sử dụng hàm từ config.js
-    return await window.callApi(prompt, 0, 200);
+    return await callApi_HI(prompt);
 }
 
-// Hàm khởi tạo nhận diện giọng nói tiếng Hindi
 function createRecognitionHindi(langCode, onResult, onEnd) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -35,148 +65,60 @@ function createRecognitionHindi(langCode, onResult, onEnd) {
     recognition.lang = langCode;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => {
-        console.log(`Bắt đầu nghe ${langCode}`);
-    };
-
+    recognition.onstart = () => console.log(`Bắt đầu nghe ${langCode}`);
     recognition.onresult = async (event) => {
         let finalTranscript = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
-            if (event.results[i].isFinal) {
-                finalTranscript += event.results[i][0].transcript;
-            }
+            if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
         }
-        
-        if (finalTranscript && onResult) {
-            console.log(`Nhận dạng Hindi: ${finalTranscript}`);
-            await onResult(finalTranscript);
-        }
+        if (finalTranscript && onResult) await onResult(finalTranscript);
     };
-    
     recognition.onerror = (event) => {
-        console.error("Recognition Hindi error:", event.error);
-        if (event.error === 'not-allowed') {
-            alert("Vui lòng cho phép microphone để dịch tiếng Hindi!");
-        }
+        if (event.error === 'not-allowed') alert("Vui lòng cho phép microphone!");
         if (onEnd) onEnd();
     };
-    
-    recognition.onend = () => {
-        console.log(`Kết thúc nghe ${langCode}`);
-        if (onEnd) onEnd();
-    };
-    
+    recognition.onend = () => { if (onEnd) onEnd(); };
     return recognition;
 }
 
-// Dừng lắng nghe Ấn-Việt
 window.stopAnDoVietListening = () => {
-    if (recognitionAnDoViet) {
-        try { recognitionAnDoViet.stop(); } catch(e) {}
-        recognitionAnDoViet = null;
-    }
+    if (recognitionAnDoViet) { try { recognitionAnDoViet.stop(); } catch(e) {} recognitionAnDoViet = null; }
     isListeningAnDo = false;
-    console.log("Đã dừng nghe Ấn-Việt");
 };
 
-// Dừng lắng nghe Việt-Ấn
 window.stopVietAnDoListening = () => {
-    if (recognitionVietAnDo) {
-        try { recognitionVietAnDo.stop(); } catch(e) {}
-        recognitionVietAnDo = null;
-    }
+    if (recognitionVietAnDo) { try { recognitionVietAnDo.stop(); } catch(e) {} recognitionVietAnDo = null; }
     isListeningVietAnDo = false;
-    console.log("Đã dừng nghe Việt-Ấn");
 };
 
-// Bắt đầu nghe Ấn -> Việt (Hindi to Vietnamese)
 window.startListeningAnDoViet = async (callback) => {
-    if (isListeningAnDo) {
-        console.log("Đang nghe Ấn-Việt rồi");
-        return;
-    }
-    
-    if (recognitionAnDoViet) {
-        try { recognitionAnDoViet.stop(); } catch(e) {}
-        recognitionAnDoViet = null;
-    }
-    
+    if (isListeningAnDo) return;
+    if (recognitionAnDoViet) { try { recognitionAnDoViet.stop(); } catch(e) {} recognitionAnDoViet = null; }
     anDoVietCallback = callback;
-    
     const onResultHandler = async (spokenHindi) => {
-        console.log(`Tiếng Hindi nhận: "${spokenHindi}"`);
         const vietText = await translateHindi(spokenHindi, "Hindi", "Vietnamese");
-        console.log(`Dịch sang Việt: "${vietText}"`);
-        if (anDoVietCallback) {
-            anDoVietCallback(spokenHindi, vietText);
-        }
+        if (anDoVietCallback) anDoVietCallback(spokenHindi, vietText);
     };
-    
     const onEndHandler = () => {
-        if (isListeningAnDo) {
-            setTimeout(() => {
-                if (isListeningAnDo && window.startListeningAnDoViet) {
-                    window.startListeningAnDoViet(anDoVietCallback);
-                }
-            }, 500);
-        }
+        if (isListeningAnDo) setTimeout(() => window.startListeningAnDoViet(anDoVietCallback), 500);
     };
-    
     recognitionAnDoViet = createRecognitionHindi("hi-IN", onResultHandler, onEndHandler);
-    if (recognitionAnDoViet) {
-        try {
-            recognitionAnDoViet.start();
-            isListeningAnDo = true;
-            console.log("Đã bắt đầu nghe Ấn-Việt");
-        } catch(e) {
-            console.error("Lỗi start recognition Hindi:", e);
-        }
-    }
+    if (recognitionAnDoViet) { recognitionAnDoViet.start(); isListeningAnDo = true; }
 };
 
-// Bắt đầu nghe Việt -> Ấn (Vietnamese to Hindi)
 window.startListeningVietAnDo = async (callback) => {
-    if (isListeningVietAnDo) {
-        console.log("Đang nghe Việt-Ấn rồi");
-        return;
-    }
-    
-    if (recognitionVietAnDo) {
-        try { recognitionVietAnDo.stop(); } catch(e) {}
-        recognitionVietAnDo = null;
-    }
-    
+    if (isListeningVietAnDo) return;
+    if (recognitionVietAnDo) { try { recognitionVietAnDo.stop(); } catch(e) {} recognitionVietAnDo = null; }
     vietAnDoCallback = callback;
-    
     const onResultHandler = async (spokenViet) => {
-        console.log(`Tiếng Việt nhận: "${spokenViet}"`);
         const hindiText = await translateHindi(spokenViet, "Vietnamese", "Hindi");
-        console.log(`Dịch sang Hindi: "${hindiText}"`);
-        if (vietAnDoCallback) {
-            vietAnDoCallback(spokenViet, hindiText);
-        }
+        if (vietAnDoCallback) vietAnDoCallback(spokenViet, hindiText);
     };
-    
     const onEndHandler = () => {
-        if (isListeningVietAnDo) {
-            setTimeout(() => {
-                if (isListeningVietAnDo && window.startListeningVietAnDo) {
-                    window.startListeningVietAnDo(vietAnDoCallback);
-                }
-            }, 500);
-        }
+        if (isListeningVietAnDo) setTimeout(() => window.startListeningVietAnDo(vietAnDoCallback), 500);
     };
-    
     recognitionVietAnDo = createRecognitionHindi("vi-VN", onResultHandler, onEndHandler);
-    if (recognitionVietAnDo) {
-        try {
-            recognitionVietAnDo.start();
-            isListeningVietAnDo = true;
-            console.log("Đã bắt đầu nghe Việt-Ấn");
-        } catch(e) {
-            console.error("Lỗi start recognition Việt-Ấn:", e);
-        }
-    }
+    if (recognitionVietAnDo) { recognitionVietAnDo.start(); isListeningVietAnDo = true; }
 };
 
-console.log("tiengando.js đã sẵn sàng - Dùng config.js để cấu hình");
+console.log("tiengando.js đã sẵn sàng");
