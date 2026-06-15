@@ -40,8 +40,8 @@
                     <button id="btnVietPhap" class="lang-btn">Việt-Pháp</button>
                 </div>
 
-                <div class="history-toolbar">
-                    <span id="historyCount" class="history-count">0 tin nhắn</span>
+                <div class="control-box">
+                    <span id="historyCount" class="count-badge">0 tin nhắn</span>
                     <button id="clearHistoryBtn" class="clear-btn">🗑️ Xóa lịch sử</button>
                 </div>
 
@@ -59,34 +59,18 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            return false;
-        });
-        document.addEventListener('selectstart', function(e) {
-            e.preventDefault();
-            return false;
-        });
-        document.addEventListener('dragstart', function(e) {
-            e.preventDefault();
-            return false;
-        });
-    </script>
-
-    
-	<script src="tienganh.js"></script>
+    <script src="tienganh.js"></script>
     <script src="tiengtrung.js"></script>
     <script src="tiengando.js"></script>
     <script src="tiengmalai.js"></script>
     <script src="tiengphap.js"></script>
-	<script src="script.js"></script>
+    <script src="script.js"></script>
     
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('SW registered:', reg))
-                .catch(err => console.log('SW error:', err));
+                .then(reg => console.log('Service Worker đã đăng ký!', reg))
+                .catch(err => console.error('Lỗi đăng ký Service Worker:', err));
         }
     </script>
 </body>
