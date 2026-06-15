@@ -1,6 +1,6 @@
 // tiengando.js - Xử lý dịch thuật tiếng Ấn Độ (Hindi)
 // ========== CẤU HÌNH CLOUDFLARE WORKER ==========
-const MODEL_NAME_HI = "llama3-70b-8192";
+const MODEL_NAME_HI = "qwen/qwen3-32b";  // ✅ Giữ nguyên model cũ
 const WORKER_URL = "https://dichthuatdulich.cuongprovuidulieu.workers.dev";
 
 async function callApi_HI(prompt) {

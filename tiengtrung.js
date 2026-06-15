@@ -1,6 +1,6 @@
-// tiengtrung.js - Xử lý dịch thuật tiếng Trung (Trung-Việt, Việt-Trung)
+// tiengtrung.js - Xử lý dịch thuật tiếng Trung
 // ========== CẤU HÌNH CLOUDFLARE WORKER ==========
-const MODEL_NAME_CN = "llama3-70b-8192";
+const MODEL_NAME_CN = "qwen/qwen3-32b";  // ✅ Giữ nguyên model cũ
 const WORKER_URL = "https://dichthuatdulich.cuongprovuidulieu.workers.dev";
 
 async function callApi_CN(prompt) {
@@ -13,7 +13,10 @@ async function callApi_CN(prompt) {
                 messages: [
                     {
                         role: "system",
-                        content: `Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, KHÔNG giải thích.`
+                        content: `Bạn là công cụ dịch thuật tiếng Trung - Việt. QUY TẮC NGHIÊM NGẶT:
+1. KHÔNG được thêm thẻ <think>
+2. KHÔNG được giải thích
+3. CHỈ trả về câu đã dịch`
                     },
                     { role: "user", content: prompt }
                 ],

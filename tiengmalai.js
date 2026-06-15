@@ -1,6 +1,6 @@
 // tiengmalai.js - Xử lý dịch thuật tiếng Malaysia
 // ========== CẤU HÌNH CLOUDFLARE WORKER ==========
-const MODEL_NAME_MS = "llama3-70b-8192";
+const MODEL_NAME_MS = "qwen/qwen3-32b";  // ✅ Giữ nguyên model cũ
 const WORKER_URL = "https://dichthuatdulich.cuongprovuidulieu.workers.dev";
 
 async function callApi_MS(prompt) {

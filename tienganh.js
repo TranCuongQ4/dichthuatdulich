@@ -1,6 +1,6 @@
 // tienganh.js - Xử lý Web Audio (Microphone), Groq API dịch thuật
 // ========== CẤU HÌNH CLOUDFLARE WORKER ==========
-const MODEL_NAME = "llama3-70b-8192";
+const MODEL_NAME = "qwen/qwen3-32b";  // ✅ Giữ nguyên model cũ
 const WORKER_URL = "https://dichthuatdulich.cuongprovuidulieu.workers.dev";
 
 async function callApi(prompt) {
