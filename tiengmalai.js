@@ -30,125 +30,73 @@ async function callApi_MS(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-let recognitionMalaiViet = null, recognitionVietMalai = null;
-let isListeningMalai = false, isListeningVietMalai = false;
-let malaiVietCallback = null, vietMalaiCallback = null;
+window.stopMalaiVietListening = window.stopAllListeningGlobal;
+window.stopVietMalaiListening = window.stopAllListeningGlobal;
 
-function createGenericRecognition(langCode, onResult, onEnd) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return null;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = langCode;
-    
-    recognition.onresult = async (e) => { 
-        let t = ""; 
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (e.results[i].isFinal) t += e.results[i][0].transcript; 
-        }
-        if (t && onResult) await onResult(t); 
-    };
-    
-    recognition.onerror = (e) => { 
-        console.error("Lỗi Speech (" + langCode + "):", e.error);
-        if (onEnd) onEnd(); 
-    };
-    
-    recognition.onend = () => { 
-        if (onEnd) onEnd(); 
-    };
-    return recognition;
-}
-
-window.speakMalay = function(text) { 
-    if (!text || !window.speechSynthesis) return; 
-    try { 
-        window.speechSynthesis.cancel(); 
-        const u = new SpeechSynthesisUtterance(text); 
-        const voices = window.speechSynthesis.getVoices();
-        const malayVoice = voices.find(v => v.lang.startsWith('ms') || v.lang.startsWith('id'));
-        if (malayVoice) {
-            u.voice = malayVoice;
-            u.lang = malayVoice.lang;
-        } else {
-            u.lang = 'ms-MY';
-        }
-        u.rate = 0.9; 
-        setTimeout(() => window.speechSynthesis.speak(u), 50); 
-    } catch(e) { console.error(e); } 
-};
+var isListeningMalai = false;
+var isListeningVietMalai = false;
+var malaiVietCallback = null;
+var vietMalaiCallback = null;
 
 window.speakVietForMalay = function(text) {
-    if (!text || !window.speechSynthesis) return;
+    if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'vi-VN';
-    u.rate = 0.9;
-    setTimeout(() => window.speechSynthesis.speak(u), 50);
+    window.speechSynthesis.speak(u);
 };
 
-window.stopMalaiVietListening = () => { 
-    if (recognitionMalaiViet) { 
-        try { recognitionMalaiViet.abort(); } catch(e) {} 
-        recognitionMalaiViet = null; 
-    } 
-    isListeningMalai = false; 
-};
-
-window.stopVietMalaiListening = () => { 
-    if (recognitionVietMalai) { 
-        try { recognitionVietMalai.abort(); } catch(e) {} 
-        recognitionVietMalai = null; 
-    } 
-    isListeningVietMalai = false; 
+window.speakMalay = function(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ms-MY';
+    window.speechSynthesis.speak(u);
 };
 
 window.startListeningMalaiViet = (cb) => {
-    window.stopMalaiVietListening();
-    window.stopVietMalaiListening();
-    
+    window.stopAllListeningGlobal();
     if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     malaiVietCallback = cb;
     
-    recognitionMalaiViet = createGenericRecognition("ms-MY", async (t) => {
+    const rec = window.sharedCreateGenericRecognition("ms-MY", async (t) => {
         const v = await callApi_MS(`Dịch câu sau đây từ Malaysia sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (malaiVietCallback) malaiVietCallback(t, v);
         window.speakVietForMalay(v);
-        window.stopMalaiVietListening();
+        window.stopAllListeningGlobal();
     }, () => { 
         isListeningMalai = false;
-        recognitionMalaiViet = null;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
     });
     
-    if (recognitionMalaiViet) {
+    if (rec) {
+        window.globalCurrentRecognition = rec;
         try {
-            recognitionMalaiViet.start();
+            rec.start();
             isListeningMalai = true;
         } catch(e) { console.error(e); }
     }
 };
 
 window.startListeningVietMalai = (cb) => {
-    window.stopMalaiVietListening();
-    window.stopVietMalaiListening();
-    
+    window.stopAllListeningGlobal();
     if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     vietMalaiCallback = cb;
     
-    recognitionVietMalai = createGenericRecognition("vi-VN", async (t) => {
+    const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
         const m = await callApi_MS(`Dịch câu sau đây từ Việt sang Malaysia (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietMalaiCallback) vietMalaiCallback(t, m);
         window.speakMalay(m);
-        window.stopVietMalaiListening();
+        window.stopAllListeningGlobal();
     }, () => { 
         isListeningVietMalai = false;
-        recognitionVietMalai = null;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
     });
     
-    if (recognitionVietMalai) {
+    if (rec) {
+        window.globalCurrentRecognition = rec;
         try {
-            recognitionVietMalai.start();
+            rec.start();
             isListeningVietMalai = true;
         } catch(e) { console.error(e); }
     }

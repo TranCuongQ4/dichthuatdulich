@@ -30,116 +30,73 @@ async function callApi_HI(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-let recognitionAnDoViet = null, recognitionVietAnDo = null;
-let isListeningAnDo = false, isListeningVietAnDo = false;
-let anDoVietCallback = null, vietAnDoCallback = null;
+window.stopAnDoVietListening = window.stopAllListeningGlobal;
+window.stopVietAnDoListening = window.stopAllListeningGlobal;
 
-function createGenericRecognition(langCode, onResult, onEnd) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return null;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = langCode;
-    
-    recognition.onresult = async (e) => { 
-        let t = ""; 
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (e.results[i].isFinal) t += e.results[i][0].transcript; 
-        }
-        if (t && onResult) await onResult(t); 
-    };
-    
-    recognition.onerror = (e) => { 
-        console.error("Lỗi Speech (" + langCode + "):", e.error);
-        if (onEnd) onEnd(); 
-    };
-    
-    recognition.onend = () => { 
-        if (onEnd) onEnd(); 
-    };
-    return recognition;
-}
-
-window.speakHindi = function(text) {
-    if (!text || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'hi-IN'; 
-    u.rate = 0.9;
-    setTimeout(() => window.speechSynthesis.speak(u), 50);
-};
+var isListeningAnDo = false;
+var isListeningVietAnDo = false;
+var anDoVietCallback = null;
+var vietAnDoCallback = null;
 
 window.speakVietForHindi = function(text) {
-    if (!text || !window.speechSynthesis) return;
+    if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'vi-VN';
-    u.rate = 0.9;
-    setTimeout(() => window.speechSynthesis.speak(u), 50);
+    window.speechSynthesis.speak(u);
 };
 
-window.stopAnDoVietListening = () => { 
-    if (recognitionAnDoViet) { 
-        try { recognitionAnDoViet.abort(); } catch(e) {} 
-        recognitionAnDoViet = null; 
-    } 
-    isListeningAnDo = false; 
-};
-
-window.stopVietAnDoListening = () => { 
-    if (recognitionVietAnDo) { 
-        try { recognitionVietAnDo.abort(); } catch(e) {} 
-        recognitionVietAnDo = null; 
-    } 
-    isListeningVietAnDo = false; 
+window.speakHindi = function(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'hi-IN';
+    window.speechSynthesis.speak(u);
 };
 
 window.startListeningAnDoViet = (cb) => {
-    window.stopAnDoVietListening();
-    window.stopVietAnDoListening();
-    
+    window.stopAllListeningGlobal();
     if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     anDoVietCallback = cb;
     
-    recognitionAnDoViet = createGenericRecognition("hi-IN", async (t) => {
+    const rec = window.sharedCreateGenericRecognition("hi-IN", async (t) => {
         const v = await callApi_HI(`Dịch câu sau đây từ Hindi sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (anDoVietCallback) anDoVietCallback(t, v);
         window.speakVietForHindi(v);
-        window.stopAnDoVietListening();
+        window.stopAllListeningGlobal();
     }, () => { 
         isListeningAnDo = false;
-        recognitionAnDoViet = null;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
     });
     
-    if (recognitionAnDoViet) {
+    if (rec) {
+        window.globalCurrentRecognition = rec;
         try {
-            recognitionAnDoViet.start();
+            rec.start();
             isListeningAnDo = true;
         } catch(e) { console.error(e); }
     }
 };
 
 window.startListeningVietAnDo = (cb) => {
-    window.stopAnDoVietListening();
-    window.stopVietAnDoListening();
-    
+    window.stopAllListeningGlobal();
     if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     vietAnDoCallback = cb;
     
-    recognitionVietAnDo = createGenericRecognition("vi-VN", async (t) => {
+    const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
         const h = await callApi_HI(`Dịch câu sau đây từ Việt sang Hindi (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietAnDoCallback) vietAnDoCallback(t, h);
         window.speakHindi(h);
-        window.stopVietAnDoListening();
+        window.stopAllListeningGlobal();
     }, () => { 
         isListeningVietAnDo = false;
-        recognitionVietAnDo = null;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
     });
     
-    if (recognitionVietAnDo) {
+    if (rec) {
+        window.globalCurrentRecognition = rec;
         try {
-            recognitionVietAnDo.start();
+            rec.start();
             isListeningVietAnDo = true;
         } catch(e) { console.error(e); }
     }

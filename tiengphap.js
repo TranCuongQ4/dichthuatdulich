@@ -30,116 +30,73 @@ async function callApi_FR(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-let recognitionPhapViet = null, recognitionVietPhap = null;
-let isListeningPhap = false, isListeningVietPhap = false;
-let phapVietCallback = null, vietPhapCallback = null;
+window.stopPhapVietListening = window.stopAllListeningGlobal;
+window.stopVietPhapListening = window.stopAllListeningGlobal;
 
-function createGenericRecognition(langCode, onResult, onEnd) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return null;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = langCode;
-    
-    recognition.onresult = async (e) => { 
-        let t = ""; 
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (e.results[i].isFinal) t += e.results[i][0].transcript; 
-        }
-        if (t && onResult) await onResult(t); 
-    };
-    
-    recognition.onerror = (e) => { 
-        console.error("Lỗi Speech (" + langCode + "):", e.error);
-        if (onEnd) onEnd(); 
-    };
-    
-    recognition.onend = () => { 
-        if (onEnd) onEnd(); 
-    };
-    return recognition;
-}
-
-window.speakFrench = function(text) { 
-    if (!text || !window.speechSynthesis) return; 
-    window.speechSynthesis.cancel(); 
-    const u = new SpeechSynthesisUtterance(text); 
-    u.lang = 'fr-FR';
-    u.rate = 0.9; 
-    setTimeout(() => window.speechSynthesis.speak(u), 50); 
-};
+var isListeningPhap = false;
+var isListeningVietPhap = false;
+var phapVietCallback = null;
+var vietPhapCallback = null;
 
 window.speakVietForFrench = function(text) {
-    if (!text || !window.speechSynthesis) return;
+    if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'vi-VN';
-    u.rate = 0.9;
-    setTimeout(() => window.speechSynthesis.speak(u), 50);
+    window.speechSynthesis.speak(u);
 };
 
-window.stopPhapVietListening = () => { 
-    if (recognitionPhapViet) { 
-        try { recognitionPhapViet.abort(); } catch(e) {} 
-        recognitionPhapViet = null; 
-    } 
-    isListeningPhap = false; 
-};
-
-window.stopVietPhapListening = () => { 
-    if (recognitionVietPhap) { 
-        try { recognitionVietPhap.abort(); } catch(e) {} 
-        recognitionVietPhap = null; 
-    } 
-    isListeningVietPhap = false; 
+window.speakFrench = function(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'fr-FR';
+    window.speechSynthesis.speak(u);
 };
 
 window.startListeningPhapViet = (cb) => {
-    window.stopPhapVietListening();
-    window.stopVietPhapListening();
-    
+    window.stopAllListeningGlobal();
     if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     phapVietCallback = cb;
     
-    recognitionPhapViet = createGenericRecognition("fr-FR", async (t) => {
+    const rec = window.sharedCreateGenericRecognition("fr-FR", async (t) => {
         const v = await callApi_FR(`Dịch câu sau đây từ Pháp sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (phapVietCallback) phapVietCallback(t, v);
         window.speakVietForFrench(v);
-        window.stopPhapVietListening();
+        window.stopAllListeningGlobal();
     }, () => { 
         isListeningPhap = false;
-        recognitionPhapViet = null;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
     });
     
-    if (recognitionPhapViet) {
+    if (rec) {
+        window.globalCurrentRecognition = rec;
         try {
-            recognitionPhapViet.start();
+            rec.start();
             isListeningPhap = true;
         } catch(e) { console.error(e); }
     }
 };
 
 window.startListeningVietPhap = (cb) => {
-    window.stopPhapVietListening();
-    window.stopVietPhapListening();
-    
+    window.stopAllListeningGlobal();
     if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     vietPhapCallback = cb;
     
-    recognitionVietPhap = createGenericRecognition("vi-VN", async (t) => {
+    const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
         const f = await callApi_FR(`Dịch câu sau đây từ Việt sang Pháp (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietPhapCallback) vietPhapCallback(t, f);
         window.speakFrench(f);
-        window.stopVietPhapListening();
+        window.stopAllListeningGlobal();
     }, () => { 
         isListeningVietPhap = false;
-        recognitionVietPhap = null;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
     });
     
-    if (recognitionVietPhap) {
+    if (rec) {
+        window.globalCurrentRecognition = rec;
         try {
-            recognitionVietPhap.start();
+            rec.start();
             isListeningVietPhap = true;
         } catch(e) { console.error(e); }
     }

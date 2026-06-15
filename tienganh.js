@@ -30,10 +30,11 @@ async function callApi(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-// Đối tượng lưu trữ phiên nhận diện giọng nói hiện tại đang chạy
-let currentRecognition = null;
+// Biến quản lý phiên micro dùng chung duy nhất cho toàn bộ ứng dụng trên Window
+window.globalCurrentRecognition = null;
 
-function createGenericRecognition(langCode, onResult, onEnd) {
+// Hàm khởi tạo nhận diện giọng nói toàn cục, chống trùng lặp ghi đè
+window.sharedCreateGenericRecognition = function(langCode, onResult, onEnd) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         console.error("Trình duyệt không hỗ trợ Web Speech API");
@@ -61,63 +62,91 @@ function createGenericRecognition(langCode, onResult, onEnd) {
         if (onEnd) onEnd(); 
     };
     return recognition;
-}
+};
 
-// Hàm tắt mic dùng chung cho toàn bộ ứng dụng nhằm giải phóng phần cứng di động
-window.stopAllListening = () => {
-    if (currentRecognition) {
-        try { currentRecognition.abort(); } catch(e) {}
-        currentRecognition = null;
+// Hàm tắt toàn bộ mic đang chạy trước khi bật mic mới
+window.stopAllListeningGlobal = () => {
+    if (window.globalCurrentRecognition) {
+        try {
+            window.globalCurrentRecognition.abort();
+        } catch(e) {
+            console.log("Không thể abort micro cũ:", e);
+        }
+        window.globalCurrentRecognition = null;
     }
 };
 
-// Định nghĩa các hàm tắt mic cũ để không làm lỗi script.js liên kết bên ngoài
-window.stopAnhVietListening = window.stopAllListening;
-window.stopVietAnhListening = window.stopAllListening;
-window.stopTrungVietListening = window.stopAllListening;
-window.stopVietTrungListening = window.stopAllListening;
-window.stopAnDoVietListening = window.stopAllListening;
-window.stopVietAnDoListening = window.stopAllListening;
-window.stopMalaiVietListening = window.stopAllListening;
-window.stopVietMalaiListening = window.stopAllListening;
-window.stopPhapVietListening = window.stopAllListening;
-window.stopVietPhapListening = window.stopAllListening;
+// Định nghĩa các hàm dọn dẹp tương thích ngược với script.js
+window.stopAnhVietListening = window.stopAllListeningGlobal;
+window.stopVietAnhListening = window.stopAllListeningGlobal;
 
-// Hàm lõi thực hiện khởi tạo và kích hoạt Micro theo từng cặp ngôn ngữ linh hoạt
-function setupListeningMode(srcLangCode, srcName, targetName, cb) {
-    window.stopAllListening();
+var isListeningAnh = false;
+var isListeningViet = false;
+var anhVietCallback = null;
+var vietAnhCallback = null;
+
+window.speakVietForEnglish = function(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'vi-VN';
+    window.speechSynthesis.speak(u);
+};
+
+window.speakEnglish = function(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    window.speechSynthesis.speak(u);
+};
+
+window.startListeningAnhViet = (cb) => {
+    window.stopAllListeningGlobal();
+    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    anhVietCallback = cb;
     
-    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); 
-    
-    currentRecognition = createGenericRecognition(srcLangCode, async (text) => {
-        const translated = await callApi(`Dịch câu sau đây từ ${srcName} sang ${targetName} (CHỈ trả về bản dịch, không thêm gì khác):\n${text}`);
-        if (cb) cb(text, translated);
-        window.stopAllListening();
+    const rec = window.sharedCreateGenericRecognition("en-US", async (t) => {
+        const v = await callApi(`Dịch câu sau đây từ Anh sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+        if (anhVietCallback) anhVietCallback(t, v);
+        window.speakVietForEnglish(v);
+        window.stopAllListeningGlobal();
     }, () => { 
-        currentRecognition = null;
+        isListeningAnh = false;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
     });
     
-    if (currentRecognition) {
+    if (rec) {
+        window.globalCurrentRecognition = rec;
         try {
-            currentRecognition.start();
+            rec.start();
+            isListeningAnh = true;
         } catch(e) { console.error(e); }
     }
-}
+};
 
-// ĐĂNG KÝ ĐẦY ĐỦ CÁC HÀM LÊN WINDOW ĐỂ SCRIPT.JS CÓ THỂ GỌI ĐƯỢC
-window.startListeningAnhViet = (cb) => setupListeningMode("en-US", "Anh", "Việt", cb);
-window.startListeningVietAnh = (cb) => setupListeningMode("vi-VN", "Việt", "Anh", cb);
+window.startListeningVietAnh = (cb) => {
+    window.stopAllListeningGlobal();
+    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    vietAnhCallback = cb;
+    
+    const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+        const e = await callApi(`Dịch câu sau đây từ Việt sang Anh (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+        if (vietAnhCallback) vietAnhCallback(t, e);
+        window.speakEnglish(e);
+        window.stopAllListeningGlobal();
+    }, () => { 
+        isListeningViet = false;
+        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+    });
+    
+    if (rec) {
+        window.globalCurrentRecognition = rec;
+        try {
+            rec.start();
+            isListeningViet = true;
+        } catch(e) { console.error(e); }
+    }
+};
 
-window.startListeningTrungViet = (cb) => setupListeningMode("zh-CN", "Trung", "Việt", cb);
-window.startListeningVietTrung = (cb) => setupListeningMode("vi-VN", "Việt", "Trung", cb);
-
-window.startListeningAnDoViet = (cb) => setupListeningMode("hi-IN", "Ấn Độ", "Việt", cb);
-window.startListeningVietAnDo = (cb) => setupListeningMode("vi-VN", "Việt", "Ấn Độ", cb);
-
-window.startListeningMalaiViet = (cb) => setupListeningMode("ms-MY", "Malaysia", "Việt", cb);
-window.startListeningVietMalai = (cb) => setupListeningMode("vi-VN", "Việt", "Malaysia", cb);
-
-window.startListeningPhapViet  = (cb) => setupListeningMode("fr-FR", "Pháp", "Việt", cb);
-window.startListeningVietPhap  = (cb) => setupListeningMode("vi-VN", "Việt", "Pháp", cb);
-
-console.log("Hệ thống dịch thuật đa ngôn ngữ đã sẵn sàng kích hoạt");
+console.log("tienganh.js đã sẵn sàng kích hoạt");
