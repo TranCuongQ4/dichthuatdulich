@@ -37,16 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('offline', () => {
         isOnline = false;
         showToast('⚠️ Mất kết nối mạng. Chỉ có thể xem lại lịch sử.');
-        if (modeAnhVietActive) disableAnhVietMode();
-        if (modeVietAnhActive) disableVietAnhMode();
-        if (modeTrungVietActive) disableTrungVietMode();
-        if (modeVietTrungActive) disableVietTrungMode();
-        if (modeAnDoVietActive) disableAnDoVietMode();
-        if (modeVietAnDoActive) disableVietAnDoMode();
-        if (modeMalaiVietActive) disableMalaiVietMode();
-        if (modeVietMalaiActive) disableVietMalaiMode();
-        if (modePhapVietActive) disablePhapVietMode();
-        if (modeVietPhapActive) disableVietPhapMode();
+        disableAllModes();
     });
     
     function showToast(message) {
@@ -82,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ========== QUẢN LÝ LƯU TRỮ LỊCH SỬ ==========
-    
     function saveHistory(historyData) {
         const record = { data: historyData, timestamp: Date.now() };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
@@ -130,30 +120,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Hàm phát âm thanh với đúng ngôn ngữ
     function speakWithLanguage(text, targetLang) {
         if (!text || text.trim() === '') {
             showToast('⚠️ Không có nội dung để phát');
             return;
         }
         
-        // Xử lý riêng cho tiếng Malaysia
         if (targetLang.toUpperCase() === 'MALAI') {
-            if (window.speakMalay) {
-                window.speakMalay(text, showToast);
-            } else {
-                showToast('⚠️ Chưa tải xong giọng đọc Malaysia');
-            }
+            if (window.speakMalay) { window.speakMalay(text, showToast); } 
+            else { showToast('⚠️ Chưa tải xong giọng đọc Malaysia'); }
             return;
         }
         
-        // Xử lý riêng cho tiếng Pháp
         if (targetLang.toUpperCase() === 'PHÁP') {
-            if (window.speakFrench) {
-                window.speakFrench(text, showToast);
-            } else {
-                showToast('⚠️ Chưa tải xong giọng đọc Pháp');
-            }
+            if (window.speakFrench) { window.speakFrench(text, showToast); } 
+            else { showToast('⚠️ Chưa tải xong giọng đọc Pháp'); }
             return;
         }
         
@@ -164,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             window.speechSynthesis.cancel();
-            
             const utterance = new SpeechSynthesisUtterance(text);
             const langCode = getSpeechLang(targetLang);
             utterance.lang = langCode;
@@ -172,16 +152,12 @@ document.addEventListener('DOMContentLoaded', () => {
             utterance.pitch = 1.0;
             utterance.volume = 1.0;
             
-            console.log(`Phát âm: "${text}" | Ngôn ngữ: ${langCode} (${targetLang})`);
-            
             utterance.onerror = (event) => {
                 console.error('Phát âm lỗi:', event);
                 showToast(`⚠️ Không thể phát âm thanh cho ${targetLang}`);
             };
             
-            setTimeout(() => {
-                window.speechSynthesis.speak(utterance);
-            }, 50);
+            setTimeout(() => { window.speechSynthesis.speak(utterance); }, 50);
         } catch(e) {
             console.error('Lỗi phát âm:', e);
             showToast('⚠️ Lỗi phát âm thanh');
@@ -198,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        history.forEach((item, index) => {
+        history.forEach((item) => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'history-item';
             
@@ -265,307 +241,215 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => btn.classList.remove('blink-red'), 300);
     }
     
-    // ========== ANH - VIỆT ==========
-    function enableAnhVietMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modeAnhVietActive = true;
-        btnAnhViet.classList.add('active-mode');
-        if (window.startListeningAnhViet) {
-            window.startListeningAnhViet((spokenText, translatedText) => {
-                addHistoryItem('Anh', spokenText, 'Việt', translatedText);
-                speakWithLanguage(translatedText, 'Việt');
-            });
-        }
-    }
-    
-    function disableAnhVietMode() {
-        modeAnhVietActive = false;
-        btnAnhViet.classList.remove('active-mode');
-        if (window.stopAnhVietListening) window.stopAnhVietListening();
-    }
-    
-    // ========== VIỆT - ANH ==========
-    function enableVietAnhMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modeVietAnhActive = true;
-        btnVietAnh.classList.add('active-mode');
-        if (window.startListeningVietAnh) {
-            window.startListeningVietAnh((spokenText, translatedText) => {
-                addHistoryItem('Việt', spokenText, 'Anh', translatedText);
-                speakWithLanguage(translatedText, 'Anh');
-            });
-        }
-    }
-    
-    function disableVietAnhMode() {
-        modeVietAnhActive = false;
-        btnVietAnh.classList.remove('active-mode');
-        if (window.stopVietAnhListening) window.stopVietAnhListening();
-    }
-    
-    // ========== TRUNG - VIỆT ==========
-    function enableTrungVietMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modeTrungVietActive = true;
-        btnTrungViet.classList.add('active-mode');
-        if (window.startListeningTrungViet) {
-            window.startListeningTrungViet((spokenText, translatedText) => {
-                addHistoryItem('Trung', spokenText, 'Việt', translatedText);
-                speakWithLanguage(translatedText, 'Việt');
-            });
-        }
-    }
-    
-    function disableTrungVietMode() {
-        modeTrungVietActive = false;
-        btnTrungViet.classList.remove('active-mode');
-        if (window.stopTrungVietListening) window.stopTrungVietListening();
-    }
-    
-    // ========== VIỆT - TRUNG ==========
-    function enableVietTrungMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modeVietTrungActive = true;
-        btnVietTrung.classList.add('active-mode');
-        if (window.startListeningVietTrung) {
-            window.startListeningVietTrung((spokenText, translatedText) => {
-                addHistoryItem('Việt', spokenText, 'Trung', translatedText);
-                speakWithLanguage(translatedText, 'Trung');
-            });
-        }
-    }
-    
-    function disableVietTrungMode() {
-        modeVietTrungActive = false;
-        btnVietTrung.classList.remove('active-mode');
-        if (window.stopVietTrungListening) window.stopVietTrungListening();
-    }
-    
-    // ========== ẤN - VIỆT ==========
-    function enableAnDoVietMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modeAnDoVietActive = true;
-        btnAnDoViet.classList.add('active-mode');
-        if (window.startListeningAnDoViet) {
-            window.startListeningAnDoViet((spokenText, translatedText) => {
-                addHistoryItem('Ấn', spokenText, 'Việt', translatedText);
-                speakWithLanguage(translatedText, 'Việt');
-            });
-        }
-    }
-    
-    function disableAnDoVietMode() {
-        modeAnDoVietActive = false;
-        btnAnDoViet.classList.remove('active-mode');
-        if (window.stopAnDoVietListening) window.stopAnDoVietListening();
-    }
-    
-    // ========== VIỆT - ẤN ==========
-    function enableVietAnDoMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modeVietAnDoActive = true;
-        btnVietAnDo.classList.add('active-mode');
-        if (window.startListeningVietAnDo) {
-            window.startListeningVietAnDo((spokenText, translatedText) => {
-                addHistoryItem('Việt', spokenText, 'Ấn', translatedText);
-                speakWithLanguage(translatedText, 'Ấn');
-            });
-        }
-    }
-    
-    function disableVietAnDoMode() {
-        modeVietAnDoActive = false;
-        btnVietAnDo.classList.remove('active-mode');
-        if (window.stopVietAnDoListening) window.stopVietAnDoListening();
-    }
-    
-    // ========== MALAI - VIỆT ==========
-    function enableMalaiVietMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modeMalaiVietActive = true;
-        btnMalaiViet.classList.add('active-mode');
-        if (window.startListeningMalaiViet) {
-            window.startListeningMalaiViet((spokenText, translatedText) => {
-                addHistoryItem('Malai', spokenText, 'Việt', translatedText);
-                speakWithLanguage(translatedText, 'Việt');
-            });
-        }
-    }
-    
-    function disableMalaiVietMode() {
-        modeMalaiVietActive = false;
-        btnMalaiViet.classList.remove('active-mode');
-        if (window.stopMalaiVietListening) window.stopMalaiVietListening();
-    }
-    
-    // ========== VIỆT - MALAI ==========
-    function enableVietMalaiMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modeVietMalaiActive = true;
-        btnVietMalai.classList.add('active-mode');
-        if (window.startListeningVietMalai) {
-            window.startListeningVietMalai((spokenText, translatedText) => {
-                addHistoryItem('Việt', spokenText, 'Malai', translatedText);
-                speakWithLanguage(translatedText, 'Malai');
-            });
-        }
-    }
-    
-    function disableVietMalaiMode() {
-        modeVietMalaiActive = false;
-        btnVietMalai.classList.remove('active-mode');
-        if (window.stopVietMalaiListening) window.stopVietMalaiListening();
-    }
-    
-    // ========== PHÁP - VIỆT ==========
-    function enablePhapVietMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modePhapVietActive = true;
-        btnPhapViet.classList.add('active-mode');
-        if (window.startListeningPhapViet) {
-            window.startListeningPhapViet((spokenText, translatedText) => {
-                addHistoryItem('Pháp', spokenText, 'Việt', translatedText);
-                speakWithLanguage(translatedText, 'Việt');
-            });
-        }
-    }
-    
-    function disablePhapVietMode() {
-        modePhapVietActive = false;
-        btnPhapViet.classList.remove('active-mode');
-        if (window.stopPhapVietListening) window.stopPhapVietListening();
-    }
-    
-    // ========== VIỆT - PHÁP ==========
-    function enableVietPhapMode() {
-        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
-        modeVietPhapActive = true;
-        btnVietPhap.classList.add('active-mode');
-        if (window.startListeningVietPhap) {
-            window.startListeningVietPhap((spokenText, translatedText) => {
-                addHistoryItem('Việt', spokenText, 'Pháp', translatedText);
-                speakWithLanguage(translatedText, 'Pháp');
-            });
-        }
-    }
-    
-    function disableVietPhapMode() {
-        modeVietPhapActive = false;
-        btnVietPhap.classList.remove('active-mode');
-        if (window.stopVietPhapListening) window.stopVietPhapListening();
-    }
-    
-    // ========== GÁN SỰ KIỆN NÚT ==========
+    // ========== HÀM ĐIỀU KHIỂN CHẾ ĐỘ CHUẨN TRÊN MOBILE ==========
     function disableAllModes() {
-        if (modeAnhVietActive) disableAnhVietMode();
-        if (modeVietAnhActive) disableVietAnhMode();
-        if (modeTrungVietActive) disableTrungVietMode();
-        if (modeVietTrungActive) disableVietTrungMode();
-        if (modeAnDoVietActive) disableAnDoVietMode();
-        if (modeVietAnDoActive) disableVietAnDoMode();
-        if (modeMalaiVietActive) disableMalaiVietMode();
-        if (modeVietMalaiActive) disableVietMalaiMode();
-        if (modePhapVietActive) disablePhapVietMode();
-        if (modeVietPhapActive) disableVietPhapMode();
+        if (modeAnhVietActive) { modeAnhVietActive = false; btnAnhViet.classList.remove('active-mode'); if (window.stopAnhVietListening) window.stopAnhVietListening(); }
+        if (modeVietAnhActive) { modeVietAnhActive = false; btnVietAnh.classList.remove('active-mode'); if (window.stopVietAnhListening) window.stopVietAnhListening(); }
+        if (modeTrungVietActive) { modeTrungVietActive = false; btnTrungViet.classList.remove('active-mode'); if (window.stopTrungVietListening) window.stopTrungVietListening(); }
+        if (modeVietTrungActive) { modeVietTrungActive = false; btnVietTrung.classList.remove('active-mode'); if (window.stopVietTrungListening) window.stopVietTrungListening(); }
+        if (modeAnDoVietActive) { modeAnDoVietActive = false; btnAnDoViet.classList.remove('active-mode'); if (window.stopAnDoVietListening) window.stopAnDoVietListening(); }
+        if (modeVietAnDoActive) { modeVietAnDoActive = false; btnVietAnDo.classList.remove('active-mode'); if (window.stopVietAnDoListening) window.stopVietAnDoListening(); }
+        if (modeMalaiVietActive) { modeMalaiVietActive = false; btnMalaiViet.classList.remove('active-mode'); if (window.stopMalaiVietListening) window.stopMalaiVietListening(); }
+        if (modeVietMalaiActive) { modeVietMalaiActive = false; btnVietMalai.classList.remove('active-mode'); if (window.stopVietMalaiListening) window.stopVietMalaiListening(); }
+        if (modePhapVietActive) { modePhapVietActive = false; btnPhapViet.classList.remove('active-mode'); if (window.stopPhapVietListening) window.stopPhapVietListening(); }
+        if (modeVietPhapActive) { modeVietPhapActive = false; btnVietPhap.classList.remove('active-mode'); if (window.stopVietPhapListening) window.stopVietPhapListening(); }
     }
+
+    // Định nghĩa hành động kích hoạt an toàn với độ trễ (Safe Activation)
+    function safeActivate(modeType, setupCallback) {
+        if (!isOnline) { showToast('❌ Không thể dịch mới khi đang offline!'); return; }
+        disableAllModes();
+        
+        // Đánh thức hệ thống âm thanh mobile bằng chuỗi rỗng
+        if (window.speechSynthesis) {
+            try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
+        }
+
+        // Tạo độ trễ 200ms giúp phần cứng di động giải phóng micro cũ hoàn toàn trước khi gán luồng mới
+        setTimeout(() => {
+            setupCallback();
+        }, 200);
+    }
+
+    // ========== ĐĂNG KÝ SỰ KIỆN CLICK CHO CÁC NÚT ==========
     
     btnAnhViet.addEventListener('click', () => {
         quickBlink(btnAnhViet);
         if (!modeAnhVietActive) {
-            disableAllModes();
-            enableAnhVietMode();
+            safeActivate('AnhViet', () => {
+                modeAnhVietActive = true;
+                btnAnhViet.classList.add('active-mode');
+                if (window.startListeningAnhViet) {
+                    window.startListeningAnhViet((spokenText, translatedText) => {
+                        addHistoryItem('Anh', spokenText, 'Việt', translatedText);
+                        speakWithLanguage(translatedText, 'Việt');
+                    });
+                }
+            });
         } else {
-            disableAnhVietMode();
+            disableAllModes();
         }
     });
     
     btnVietAnh.addEventListener('click', () => {
         quickBlink(btnVietAnh);
         if (!modeVietAnhActive) {
-            disableAllModes();
-            enableVietAnhMode();
+            safeActivate('VietAnh', () => {
+                modeVietAnhActive = true;
+                btnVietAnh.classList.add('active-mode');
+                if (window.startListeningVietAnh) {
+                    window.startListeningVietAnh((spokenText, translatedText) => {
+                        addHistoryItem('Việt', spokenText, 'Anh', translatedText);
+                        speakWithLanguage(translatedText, 'Anh');
+                    });
+                }
+            });
         } else {
-            disableVietAnhMode();
+            disableAllModes();
         }
     });
     
     btnTrungViet.addEventListener('click', () => {
         quickBlink(btnTrungViet);
         if (!modeTrungVietActive) {
-            disableAllModes();
-            enableTrungVietMode();
+            safeActivate('TrungViet', () => {
+                modeTrungVietActive = true;
+                btnTrungViet.classList.add('active-mode');
+                if (window.startListeningTrungViet) {
+                    window.startListeningTrungViet((spokenText, translatedText) => {
+                        addHistoryItem('Trung', spokenText, 'Việt', translatedText);
+                        speakWithLanguage(translatedText, 'Việt');
+                    });
+                }
+            });
         } else {
-            disableTrungVietMode();
+            disableAllModes();
         }
     });
     
     btnVietTrung.addEventListener('click', () => {
         quickBlink(btnVietTrung);
         if (!modeVietTrungActive) {
-            disableAllModes();
-            enableVietTrungMode();
+            safeActivate('VietTrung', () => {
+                modeVietTrungActive = true;
+                btnVietTrung.classList.add('active-mode');
+                if (window.startListeningVietTrung) {
+                    window.startListeningVietTrung((spokenText, translatedText) => {
+                        addHistoryItem('Việt', spokenText, 'Trung', translatedText);
+                        speakWithLanguage(translatedText, 'Trung');
+                    });
+                }
+            });
         } else {
-            disableVietTrungMode();
+            disableAllModes();
         }
     });
     
     btnAnDoViet.addEventListener('click', () => {
         quickBlink(btnAnDoViet);
         if (!modeAnDoVietActive) {
-            disableAllModes();
-            enableAnDoVietMode();
+            safeActivate('AnDoViet', () => {
+                modeAnDoVietActive = true;
+                btnAnDoViet.classList.add('active-mode');
+                if (window.startListeningAnDoViet) {
+                    window.startListeningAnDoViet((spokenText, translatedText) => {
+                        addHistoryItem('Ấn', spokenText, 'Việt', translatedText);
+                        speakWithLanguage(translatedText, 'Việt');
+                    });
+                }
+            });
         } else {
-            disableAnDoVietMode();
+            disableAllModes();
         }
     });
     
     btnVietAnDo.addEventListener('click', () => {
         quickBlink(btnVietAnDo);
         if (!modeVietAnDoActive) {
-            disableAllModes();
-            enableVietAnDoMode();
+            safeActivate('VietAnDo', () => {
+                modeVietAnDoActive = true;
+                btnVietAnDo.classList.add('active-mode');
+                if (window.startListeningVietAnDo) {
+                    window.startListeningVietAnDo((spokenText, translatedText) => {
+                        addHistoryItem('Việt', spokenText, 'Ấn', translatedText);
+                        speakWithLanguage(translatedText, 'Ấn');
+                    });
+                }
+            });
         } else {
-            disableVietAnDoMode();
+            disableAllModes();
         }
     });
     
     btnMalaiViet.addEventListener('click', () => {
         quickBlink(btnMalaiViet);
         if (!modeMalaiVietActive) {
-            disableAllModes();
-            enableMalaiVietMode();
+            safeActivate('MalaiViet', () => {
+                modeMalaiVietActive = true;
+                btnMalaiViet.classList.add('active-mode');
+                if (window.startListeningMalaiViet) {
+                    window.startListeningMalaiViet((spokenText, translatedText) => {
+                        addHistoryItem('Malai', spokenText, 'Việt', translatedText);
+                        speakWithLanguage(translatedText, 'Việt');
+                    });
+                }
+            });
         } else {
-            disableMalaiVietMode();
+            disableAllModes();
         }
     });
     
     btnVietMalai.addEventListener('click', () => {
         quickBlink(btnVietMalai);
         if (!modeVietMalaiActive) {
-            disableAllModes();
-            enableVietMalaiMode();
+            safeActivate('VietMalai', () => {
+                modeVietMalaiActive = true;
+                btnVietMalai.classList.add('active-mode');
+                if (window.startListeningVietMalai) {
+                    window.startListeningVietMalai((spokenText, translatedText) => {
+                        addHistoryItem('Việt', spokenText, 'Malai', translatedText);
+                        speakWithLanguage(translatedText, 'Malai');
+                    });
+                }
+            });
         } else {
-            disableVietMalaiMode();
+            disableAllModes();
         }
     });
     
     btnPhapViet.addEventListener('click', () => {
         quickBlink(btnPhapViet);
         if (!modePhapVietActive) {
-            disableAllModes();
-            enablePhapVietMode();
+            safeActivate('PhapViet', () => {
+                modePhapVietActive = true;
+                btnPhapViet.classList.add('active-mode');
+                if (window.startListeningPhapViet) {
+                    window.startListeningPhapViet((spokenText, translatedText) => {
+                        addHistoryItem('Pháp', spokenText, 'Việt', translatedText);
+                        speakWithLanguage(translatedText, 'Việt');
+                    });
+                }
+            });
         } else {
-            disablePhapVietMode();
+            disableAllModes();
         }
     });
     
     btnVietPhap.addEventListener('click', () => {
         quickBlink(btnVietPhap);
         if (!modeVietPhapActive) {
-            disableAllModes();
-            enableVietPhapMode();
+            safeActivate('VietPhap', () => {
+                modeVietPhapActive = true;
+                btnVietPhap.classList.add('active-mode');
+                if (window.startListeningVietPhap) {
+                    window.startListeningVietPhap((spokenText, translatedText) => {
+                        addHistoryItem('Việt', spokenText, 'Pháp', translatedText);
+                        speakWithLanguage(translatedText, 'Pháp');
+                    });
+                }
+            });
         } else {
-            disableVietPhapMode();
+            disableAllModes();
         }
     });
     
@@ -577,9 +461,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('⚠️ Trình duyệt không hỗ trợ phát âm thanh');
     } else {
         try {
+            window.speechSynthesis.cancel();
             const dummy = new SpeechSynthesisUtterance('');
             window.speechSynthesis.speak(dummy);
-            window.speechSynthesis.cancel();
         } catch(e) {}
     }
     
