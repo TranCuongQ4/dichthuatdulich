@@ -1,7 +1,7 @@
 if (!window.WORKER_URL) {
     window.WORKER_URL = "https://dichthuatdulich.cuongprovuidulieu.workers.dev";
 }
-var MODEL_NAME_MS = "llama-3.3-70b-versatile";
+var MODEL_NAME_MS = "openai/gpt-oss-20b";
 
 async function callApi_MS(prompt) {
     try {
