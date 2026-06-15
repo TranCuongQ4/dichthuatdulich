@@ -10,7 +10,10 @@ async function callApi_MS(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: MODEL_NAME_MS,
-                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." }, { role: "user", content: prompt }],
+                messages: [
+                    { role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." },
+                    { role: "user", content: prompt }
+                ],
                 temperature: 0,
                 max_tokens: 300
             })
@@ -27,23 +30,31 @@ async function callApi_MS(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-let recognitionMalaiViet = null, recognitionVietMalai = null, isListeningMalai = false, isListeningVietMalai = false, malaiVietCallback = null, vietMalaiCallback = null;
+let recognitionMalaiViet = null, recognitionVietMalai = null;
+let isListeningMalai = false, isListeningVietMalai = false;
+let malaiVietCallback = null, vietMalaiCallback = null;
 
-function createRecognitionMalay(langCode, onResult, onEnd) {
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+function createGenericRecognition(langCode, onResult, onEnd) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return null;
+    const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = langCode;
+    
     recognition.onresult = async (e) => { 
         let t = ""; 
-        for (let i = e.resultIndex; i < e.results.length; i++) 
+        for (let i = e.resultIndex; i < e.results.length; i++) {
             if (e.results[i].isFinal) t += e.results[i][0].transcript; 
+        }
         if (t && onResult) await onResult(t); 
     };
+    
     recognition.onerror = (e) => { 
-        console.error("Lỗi:", e.error);
+        console.error("Lỗi Speech (" + langCode + "):", e.error);
         if (onEnd) onEnd(); 
     };
+    
     recognition.onend = () => { 
         if (onEnd) onEnd(); 
     };
@@ -79,7 +90,7 @@ window.speakVietForMalay = function(text) {
 
 window.stopMalaiVietListening = () => { 
     if (recognitionMalaiViet) { 
-        try { recognitionMalaiViet.stop(); } catch(e) {} 
+        try { recognitionMalaiViet.abort(); } catch(e) {} 
         recognitionMalaiViet = null; 
     } 
     isListeningMalai = false; 
@@ -87,19 +98,20 @@ window.stopMalaiVietListening = () => {
 
 window.stopVietMalaiListening = () => { 
     if (recognitionVietMalai) { 
-        try { recognitionVietMalai.stop(); } catch(e) {} 
+        try { recognitionVietMalai.abort(); } catch(e) {} 
         recognitionVietMalai = null; 
     } 
     isListeningVietMalai = false; 
 };
 
 window.startListeningMalaiViet = (cb) => {
-    if (isListeningMalai) {
-        window.stopMalaiVietListening();
-    }
+    window.stopMalaiVietListening();
+    window.stopVietMalaiListening();
+    
+    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     malaiVietCallback = cb;
     
-    recognitionMalaiViet = createRecognitionMalay("ms-MY", async (t) => {
+    recognitionMalaiViet = createGenericRecognition("ms-MY", async (t) => {
         const v = await callApi_MS(`Dịch câu sau đây từ Malaysia sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (malaiVietCallback) malaiVietCallback(t, v);
         window.speakVietForMalay(v);
@@ -109,17 +121,22 @@ window.startListeningMalaiViet = (cb) => {
         recognitionMalaiViet = null;
     });
     
-    recognitionMalaiViet.start();
-    isListeningMalai = true;
+    if (recognitionMalaiViet) {
+        try {
+            recognitionMalaiViet.start();
+            isListeningMalai = true;
+        } catch(e) { console.error(e); }
+    }
 };
 
 window.startListeningVietMalai = (cb) => {
-    if (isListeningVietMalai) {
-        window.stopVietMalaiListening();
-    }
+    window.stopMalaiVietListening();
+    window.stopVietMalaiListening();
+    
+    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     vietMalaiCallback = cb;
     
-    recognitionVietMalai = createRecognitionMalay("vi-VN", async (t) => {
+    recognitionVietMalai = createGenericRecognition("vi-VN", async (t) => {
         const m = await callApi_MS(`Dịch câu sau đây từ Việt sang Malaysia (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietMalaiCallback) vietMalaiCallback(t, m);
         window.speakMalay(m);
@@ -129,8 +146,12 @@ window.startListeningVietMalai = (cb) => {
         recognitionVietMalai = null;
     });
     
-    recognitionVietMalai.start();
-    isListeningVietMalai = true;
+    if (recognitionVietMalai) {
+        try {
+            recognitionVietMalai.start();
+            isListeningVietMalai = true;
+        } catch(e) { console.error(e); }
+    }
 };
 
 console.log("tiengmalai.js đã sẵn sàng");

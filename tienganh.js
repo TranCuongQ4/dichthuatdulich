@@ -10,7 +10,10 @@ async function callApi(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: MODEL_NAME,
-                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." }, { role: "user", content: prompt }],
+                messages: [
+                    { role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." },
+                    { role: "user", content: prompt }
+                ],
                 temperature: 0,
                 max_tokens: 300
             })
@@ -27,23 +30,34 @@ async function callApi(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-let recognitionAnhViet = null, recognitionVietAnh = null, isListeningAnh = false, isListeningViet = false, anhVietCallback = null, vietAnhCallback = null;
+let recognitionAnhViet = null, recognitionVietAnh = null;
+let isListeningAnh = false, isListeningViet = false;
+let anhVietCallback = null, vietAnhCallback = null;
 
-function createRecognition(langCode, onResult, onEnd) {
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+function createGenericRecognition(langCode, onResult, onEnd) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.error("Trình duyệt không hỗ trợ Web Speech API");
+        return null;
+    }
+    const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = langCode;
+    
     recognition.onresult = async (e) => { 
         let t = ""; 
-        for (let i = e.resultIndex; i < e.results.length; i++) 
+        for (let i = e.resultIndex; i < e.results.length; i++) {
             if (e.results[i].isFinal) t += e.results[i][0].transcript; 
+        }
         if (t && onResult) await onResult(t); 
     };
+    
     recognition.onerror = (e) => { 
-        console.error("Lỗi:", e.error);
+        console.error("Lỗi Speech (" + langCode + "):", e.error);
         if (onEnd) onEnd(); 
     };
+    
     recognition.onend = () => { 
         if (onEnd) onEnd(); 
     };
@@ -70,7 +84,7 @@ window.speakVietForEnglish = function(text) {
 
 window.stopAnhVietListening = () => { 
     if (recognitionAnhViet) { 
-        try { recognitionAnhViet.stop(); } catch(e) {} 
+        try { recognitionAnhViet.abort(); } catch(e) {} 
         recognitionAnhViet = null; 
     } 
     isListeningAnh = false; 
@@ -78,19 +92,20 @@ window.stopAnhVietListening = () => {
 
 window.stopVietAnhListening = () => { 
     if (recognitionVietAnh) { 
-        try { recognitionVietAnh.stop(); } catch(e) {} 
+        try { recognitionVietAnh.abort(); } catch(e) {} 
         recognitionVietAnh = null; 
     } 
     isListeningViet = false; 
 };
 
 window.startListeningAnhViet = (cb) => {
-    if (isListeningAnh) {
-        window.stopAnhVietListening();
-    }
+    window.stopAnhVietListening();
+    window.stopVietAnhListening();
+    
+    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); 
     anhVietCallback = cb;
     
-    recognitionAnhViet = createRecognition("en-US", async (t) => {
+    recognitionAnhViet = createGenericRecognition("en-US", async (t) => {
         const v = await callApi(`Dịch câu sau đây từ Anh sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (anhVietCallback) anhVietCallback(t, v);
         window.speakVietForEnglish(v);
@@ -100,17 +115,22 @@ window.startListeningAnhViet = (cb) => {
         recognitionAnhViet = null;
     });
     
-    recognitionAnhViet.start();
-    isListeningAnh = true;
+    if (recognitionAnhViet) {
+        try {
+            recognitionAnhViet.start();
+            isListeningAnh = true;
+        } catch(e) { console.error(e); }
+    }
 };
 
 window.startListeningVietAnh = (cb) => {
-    if (isListeningViet) {
-        window.stopVietAnhListening();
-    }
+    window.stopAnhVietListening();
+    window.stopVietAnhListening();
+    
+    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     vietAnhCallback = cb;
     
-    recognitionVietAnh = createRecognition("vi-VN", async (t) => {
+    recognitionVietAnh = createGenericRecognition("vi-VN", async (t) => {
         const e = await callApi(`Dịch câu sau đây từ Việt sang Anh (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietAnhCallback) vietAnhCallback(t, e);
         window.speakEnglish(e);
@@ -120,8 +140,12 @@ window.startListeningVietAnh = (cb) => {
         recognitionVietAnh = null;
     });
     
-    recognitionVietAnh.start();
-    isListeningViet = true;
+    if (recognitionVietAnh) {
+        try {
+            recognitionVietAnh.start();
+            isListeningViet = true;
+        } catch(e) { console.error(e); }
+    }
 };
 
 console.log("tienganh.js đã sẵn sàng");

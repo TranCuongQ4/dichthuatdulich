@@ -10,7 +10,10 @@ async function callApi_HI(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: MODEL_NAME_HI,
-                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." }, { role: "user", content: prompt }],
+                messages: [
+                    { role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." },
+                    { role: "user", content: prompt }
+                ],
                 temperature: 0,
                 max_tokens: 300
             })
@@ -27,23 +30,31 @@ async function callApi_HI(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-let recognitionAnDoViet = null, recognitionVietAnDo = null, isListeningAnDo = false, isListeningVietAnDo = false, anDoVietCallback = null, vietAnDoCallback = null;
+let recognitionAnDoViet = null, recognitionVietAnDo = null;
+let isListeningAnDo = false, isListeningVietAnDo = false;
+let anDoVietCallback = null, vietAnDoCallback = null;
 
-function createRecognitionHindi(langCode, onResult, onEnd) {
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+function createGenericRecognition(langCode, onResult, onEnd) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return null;
+    const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = langCode;
+    
     recognition.onresult = async (e) => { 
         let t = ""; 
-        for (let i = e.resultIndex; i < e.results.length; i++) 
+        for (let i = e.resultIndex; i < e.results.length; i++) {
             if (e.results[i].isFinal) t += e.results[i][0].transcript; 
+        }
         if (t && onResult) await onResult(t); 
     };
+    
     recognition.onerror = (e) => { 
-        console.error("Lỗi:", e.error);
+        console.error("Lỗi Speech (" + langCode + "):", e.error);
         if (onEnd) onEnd(); 
     };
+    
     recognition.onend = () => { 
         if (onEnd) onEnd(); 
     };
@@ -70,7 +81,7 @@ window.speakVietForHindi = function(text) {
 
 window.stopAnDoVietListening = () => { 
     if (recognitionAnDoViet) { 
-        try { recognitionAnDoViet.stop(); } catch(e) {} 
+        try { recognitionAnDoViet.abort(); } catch(e) {} 
         recognitionAnDoViet = null; 
     } 
     isListeningAnDo = false; 
@@ -78,19 +89,20 @@ window.stopAnDoVietListening = () => {
 
 window.stopVietAnDoListening = () => { 
     if (recognitionVietAnDo) { 
-        try { recognitionVietAnDo.stop(); } catch(e) {} 
+        try { recognitionVietAnDo.abort(); } catch(e) {} 
         recognitionVietAnDo = null; 
     } 
     isListeningVietAnDo = false; 
 };
 
 window.startListeningAnDoViet = (cb) => {
-    if (isListeningAnDo) {
-        window.stopAnDoVietListening();
-    }
+    window.stopAnDoVietListening();
+    window.stopVietAnDoListening();
+    
+    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     anDoVietCallback = cb;
     
-    recognitionAnDoViet = createRecognitionHindi("hi-IN", async (t) => {
+    recognitionAnDoViet = createGenericRecognition("hi-IN", async (t) => {
         const v = await callApi_HI(`Dịch câu sau đây từ Hindi sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (anDoVietCallback) anDoVietCallback(t, v);
         window.speakVietForHindi(v);
@@ -100,17 +112,22 @@ window.startListeningAnDoViet = (cb) => {
         recognitionAnDoViet = null;
     });
     
-    recognitionAnDoViet.start();
-    isListeningAnDo = true;
+    if (recognitionAnDoViet) {
+        try {
+            recognitionAnDoViet.start();
+            isListeningAnDo = true;
+        } catch(e) { console.error(e); }
+    }
 };
 
 window.startListeningVietAnDo = (cb) => {
-    if (isListeningVietAnDo) {
-        window.stopVietAnDoListening();
-    }
+    window.stopAnDoVietListening();
+    window.stopVietAnDoListening();
+    
+    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
     vietAnDoCallback = cb;
     
-    recognitionVietAnDo = createRecognitionHindi("vi-VN", async (t) => {
+    recognitionVietAnDo = createGenericRecognition("vi-VN", async (t) => {
         const h = await callApi_HI(`Dịch câu sau đây từ Việt sang Hindi (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietAnDoCallback) vietAnDoCallback(t, h);
         window.speakHindi(h);
@@ -120,8 +137,12 @@ window.startListeningVietAnDo = (cb) => {
         recognitionVietAnDo = null;
     });
     
-    recognitionVietAnDo.start();
-    isListeningVietAnDo = true;
+    if (recognitionVietAnDo) {
+        try {
+            recognitionVietAnDo.start();
+            isListeningVietAnDo = true;
+        } catch(e) { console.error(e); }
+    }
 };
 
 console.log("tiengando.js đã sẵn sàng");
