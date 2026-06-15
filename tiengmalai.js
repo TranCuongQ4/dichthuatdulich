@@ -19,7 +19,7 @@ async function translateMalay(text, sourceLang, targetLang) {
     }
     
     // Sử dụng hàm từ config.js
-    return await callApi(prompt, 0, 300);
+    return await window.callApi(prompt, 0, 200);
 }
 
 // Hàm kiểm tra và lấy giọng đọc tiếng Malaysia

@@ -1,13 +1,11 @@
-// config.js - Cấu hình chung cho toàn bộ dự án
+// config.js - Cấu hình duy nhất cho toàn bộ dự án
+// Không khai báo trùng lặp
 
-// ========== CẤU HÌNH MODEL ==========
 const MODEL_NAME = "llama3-70b-8192";
-
-// ========== CẤU HÌNH API ==========
 const WORKER_URL = "/api/groq-proxy";
 
-// ========== HÀM GỌI API DÙNG CHUNG ==========
-async function callApi(prompt, modelName = MODEL_NAME) {
+// Định nghĩa hàm callApi DUY NHẤT một lần
+window.callApi = async function(prompt, modelName = MODEL_NAME) {
     try {
         const response = await fetch(WORKER_URL, {
             method: "POST",
@@ -54,8 +52,7 @@ async function callApi(prompt, modelName = MODEL_NAME) {
         console.error("API error:", err);
         return "[Lỗi kết nối]";
     }
-}
+};
 
-// 👇 EXPORT CẢ 2 TÊN HÀM để tương thích
-const callGroqAPI = callApi;
-const callApi = callApi;  // Thêm dòng này
+// Đặt alias để tương thích
+window.callGroqAPI = window.callApi;

@@ -19,7 +19,7 @@ async function translateText(text, sourceLang, targetLang) {
     }
     
     // Sử dụng hàm từ config.js
-    return await callApi(prompt, 0, 200);
+    return await window.callApi(prompt, 0, 200);
 }
 
 // Tổng hợp giọng nói
