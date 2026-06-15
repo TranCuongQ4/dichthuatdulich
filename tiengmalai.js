@@ -10,7 +10,7 @@ async function callApi_MS(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: MODEL_NAME_MS,
-                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch." }, { role: "user", content: prompt }],
+                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." }, { role: "user", content: prompt }],
                 temperature: 0,
                 max_tokens: 300
             })
@@ -40,14 +40,12 @@ function createRecognitionMalay(langCode, onResult, onEnd) {
     return recognition;
 }
 
-// Hàm phát âm tiếng Malaysia thông minh, tự động lấy giọng Indonesia làm dự phòng
 window.speakMalay = function(text) { 
     if (!text || !window.speechSynthesis) return; 
     try { 
         window.speechSynthesis.cancel(); 
         const u = new SpeechSynthesisUtterance(text); 
         const voices = window.speechSynthesis.getVoices();
-        // Tìm giọng Mã Lai (ms) hoặc giọng Indo (id)
         const malayVoice = voices.find(v => v.lang.startsWith('ms') || v.lang.startsWith('id'));
         if (malayVoice) {
             u.voice = malayVoice;
@@ -77,7 +75,7 @@ window.startListeningMalaiViet = async (cb) => {
     recognitionMalaiViet?.stop(); 
     malaiVietCallback = cb; 
     recognitionMalaiViet = createRecognitionMalay("ms-MY", async (t) => { 
-        const v = await callApi_MS(`Dịch Malaysia sang Việt:\n${t}\nTiếng Việt:`); 
+        const v = await callApi_MS(`Dịch câu sau đây từ Malaysia sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`); 
         if (malaiVietCallback) malaiVietCallback(t, v); 
         window.speakVietForMalay(v); 
     }, () => { if (isListeningMalai) setTimeout(() => window.startListeningMalaiViet(malaiVietCallback), 500); }); 
@@ -90,9 +88,9 @@ window.startListeningVietMalai = async (cb) => {
     recognitionVietMalai?.stop(); 
     vietMalaiCallback = cb; 
     recognitionVietMalai = createRecognitionMalay("vi-VN", async (t) => { 
-        const m = await callApi_MS(`Dịch Việt sang Malaysia:\n${t}\nBahasa Melayu:`); 
+        const m = await callApi_MS(`Dịch câu sau đây từ Việt sang Malaysia (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`); 
         if (vietMalaiCallback) vietMalaiCallback(t, m); 
-        window.speakMalay(m); // Sửa lỗi: Gọi giọng bản xứ chuẩn vùng Mã Lai/Indo
+        window.speakMalay(m);
     }, () => { if (isListeningVietMalai) setTimeout(() => window.startListeningVietMalai(vietMalaiCallback), 500); }); 
     recognitionVietMalai?.start(); 
     isListeningVietMalai = true; 

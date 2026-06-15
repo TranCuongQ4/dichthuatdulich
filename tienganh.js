@@ -10,7 +10,7 @@ async function callApi(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: MODEL_NAME,
-                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, KHÔNG giải thích." }, { role: "user", content: prompt }],
+                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." }, { role: "user", content: prompt }],
                 temperature: 0,
                 max_tokens: 300
             })
@@ -44,7 +44,7 @@ window.speakEnglish = function(text) {
     if (!text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US'; // Giọng Mỹ chuẩn
+    u.lang = 'en-US';
     u.rate = 0.9;
     setTimeout(() => window.speechSynthesis.speak(u), 50);
 };
@@ -66,9 +66,9 @@ window.startListeningAnhViet = async (cb) => {
     recognitionAnhViet?.stop();
     anhVietCallback = cb;
     recognitionAnhViet = createRecognition("en-US", async (t) => {
-        const v = await callApi(`Dịch Anh sang Việt:\n${t}\nTiếng Việt:`);
+        const v = await callApi(`Dịch câu sau đây từ Anh sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (anhVietCallback) anhVietCallback(t, v);
-        window.speakVietForEnglish(v); // Đọc tiếng Việt lên
+        window.speakVietForEnglish(v);
     }, () => { if (isListeningAnh) setTimeout(() => window.startListeningAnhViet(anhVietCallback), 500); });
     recognitionAnhViet?.start();
     isListeningAnh = true;
@@ -79,9 +79,9 @@ window.startListeningVietAnh = async (cb) => {
     recognitionVietAnh?.stop();
     vietAnhCallback = cb;
     recognitionVietAnh = createRecognition("vi-VN", async (t) => {
-        const e = await callApi(`Dịch Việt sang Anh:\n${t}\nEnglish:`);
+        const e = await callApi(`Dịch câu sau đây từ Việt sang Anh (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietAnhCallback) vietAnhCallback(t, e);
-        window.speakEnglish(e); // Đọc tiếng Anh giọng Mỹ lên
+        window.speakEnglish(e);
     }, () => { if (isListeningViet) setTimeout(() => window.startListeningVietAnh(vietAnhCallback), 500); });
     recognitionVietAnh?.start();
     isListeningViet = true;

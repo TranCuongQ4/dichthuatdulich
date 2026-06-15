@@ -10,7 +10,7 @@ async function callApi_CN(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: MODEL_NAME_CN,
-                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch." }, { role: "user", content: prompt }],
+                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." }, { role: "user", content: prompt }],
                 temperature: 0,
                 max_tokens: 300
             })
@@ -40,7 +40,6 @@ function createRecognitionChinese(langCode, onResult, onEnd) {
     return recognition;
 }
 
-// Bổ sung hàm đọc Tiếng Trung chuẩn bản xứ
 window.speakChinese = function(text) {
     if (!text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -67,7 +66,7 @@ window.startListeningTrungViet = async (cb) => {
     recognitionTrungViet?.stop();
     trungVietCallback = cb;
     recognitionTrungViet = createRecognitionChinese("zh-CN", async (t) => {
-        const v = await callApi_CN(`Dịch Trung sang Việt:\n${t}\nTiếng Việt:`);
+        const v = await callApi_CN(`Dịch câu sau đây từ Trung sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (trungVietCallback) trungVietCallback(t, v);
         window.speakVietForChinese(v);
     }, () => { if (isListeningTrung) setTimeout(() => window.startListeningTrungViet(trungVietCallback), 500); });
@@ -80,9 +79,9 @@ window.startListeningVietTrung = async (cb) => {
     recognitionVietTrung?.stop();
     vietTrungCallback = cb;
     recognitionVietTrung = createRecognitionChinese("vi-VN", async (t) => {
-        const c = await callApi_CN(`Dịch Việt sang Trung:\n${t}\nTiếng Trung:`);
+        const c = await callApi_CN(`Dịch câu sau đây từ Việt sang Trung (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietTrungCallback) vietTrungCallback(t, c);
-        window.speakChinese(c); // Gọi phát âm tiếng Trung bản xứ
+        window.speakChinese(c);
     }, () => { if (isListeningVietTrung) setTimeout(() => window.startListeningVietTrung(vietTrungCallback), 500); });
     recognitionVietTrung?.start();
     isListeningVietTrung = true;

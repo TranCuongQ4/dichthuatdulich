@@ -10,7 +10,7 @@ async function callApi_HI(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: MODEL_NAME_HI,
-                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch." }, { role: "user", content: prompt }],
+                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." }, { role: "user", content: prompt }],
                 temperature: 0,
                 max_tokens: 300
             })
@@ -40,7 +40,6 @@ function createRecognitionHindi(langCode, onResult, onEnd) {
     return recognition;
 }
 
-// Bổ sung hàm đọc Tiếng Ấn Độ (Hindi) bản xứ
 window.speakHindi = function(text) {
     if (!text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -67,7 +66,7 @@ window.startListeningAnDoViet = async (cb) => {
     recognitionAnDoViet?.stop();
     anDoVietCallback = cb;
     recognitionAnDoViet = createRecognitionHindi("hi-IN", async (t) => {
-        const v = await callApi_HI(`Dịch Hindi sang Việt:\n${t}\nTiếng Việt:`);
+        const v = await callApi_HI(`Dịch câu sau đây từ Hindi sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (anDoVietCallback) anDoVietCallback(t, v);
         window.speakVietForHindi(v);
     }, () => { if (isListeningAnDo) setTimeout(() => window.startListeningAnDoViet(anDoVietCallback), 500); });
@@ -80,9 +79,9 @@ window.startListeningVietAnDo = async (cb) => {
     recognitionVietAnDo?.stop();
     vietAnDoCallback = cb;
     recognitionVietAnDo = createRecognitionHindi("vi-VN", async (t) => {
-        const h = await callApi_HI(`Dịch Việt sang Hindi:\n${t}\nहिन्दी:`);
+        const h = await callApi_HI(`Dịch câu sau đây từ Việt sang Hindi (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietAnDoCallback) vietAnDoCallback(t, h);
-        window.speakHindi(h); // Gọi phát âm tiếng Ấn Độ bản xứ
+        window.speakHindi(h);
     }, () => { if (isListeningVietAnDo) setTimeout(() => window.startListeningVietAnDo(vietAnDoCallback), 500); });
     recognitionVietAnDo?.start();
     isListeningVietAnDo = true;

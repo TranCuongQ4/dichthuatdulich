@@ -10,7 +10,7 @@ async function callApi_FR(prompt) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: MODEL_NAME_FR,
-                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch." }, { role: "user", content: prompt }],
+                messages: [{ role: "system", content: "Bạn là công cụ dịch thuật. CHỈ trả về câu đã dịch, tuyệt đối KHÔNG giải thích, KHÔNG thêm từ, KHÔNG sáng tạo. Dịch chính xác câu người dùng cung cấp." }, { role: "user", content: prompt }],
                 temperature: 0,
                 max_tokens: 300
             })
@@ -44,7 +44,7 @@ window.speakFrench = function(text) {
     if (!text || !window.speechSynthesis) return; 
     window.speechSynthesis.cancel(); 
     const u = new SpeechSynthesisUtterance(text); 
-    u.lang = 'fr-FR'; // Giọng Pháp chuẩn vùng
+    u.lang = 'fr-FR';
     u.rate = 0.9; 
     setTimeout(() => window.speechSynthesis.speak(u), 50); 
 };
@@ -66,7 +66,7 @@ window.startListeningPhapViet = async (cb) => {
     recognitionPhapViet?.stop(); 
     phapVietCallback = cb; 
     recognitionPhapViet = createRecognitionFrench("fr-FR", async (t) => { 
-        const v = await callApi_FR(`Dịch Pháp sang Việt:\n${t}\nTiếng Việt:`); 
+        const v = await callApi_FR(`Dịch câu sau đây từ Pháp sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`); 
         if (phapVietCallback) phapVietCallback(t, v); 
         window.speakVietForFrench(v);
     }, () => { if (isListeningPhap) setTimeout(() => window.startListeningPhapViet(phapVietCallback), 500); }); 
@@ -79,9 +79,9 @@ window.startListeningVietPhap = async (cb) => {
     recognitionVietPhap?.stop(); 
     vietPhapCallback = cb; 
     recognitionVietPhap = createRecognitionFrench("vi-VN", async (t) => { 
-        const f = await callApi_FR(`Dịch Việt sang Pháp:\n${t}\nFrançais:`); 
+        const f = await callApi_FR(`Dịch câu sau đây từ Việt sang Pháp (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`); 
         if (vietPhapCallback) vietPhapCallback(t, f); 
-        window.speakFrench(f); // Sửa lỗi: Kích hoạt gọi giọng bản xứ Pháp tự động
+        window.speakFrench(f);
     }, () => { if (isListeningVietPhap) setTimeout(() => window.startListeningVietPhap(vietPhapCallback), 500); }); 
     recognitionVietPhap?.start(); 
     isListeningVietPhap = true; 
