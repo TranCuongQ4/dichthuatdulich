@@ -56,5 +56,6 @@ async function callApi(prompt, modelName = MODEL_NAME) {
     }
 }
 
-// 👇 THÊM DÒNG NÀY để tương thích với tên hàm trong tieng*.js
+// 👇 EXPORT CẢ 2 TÊN HÀM để tương thích
 const callGroqAPI = callApi;
+const callApi = callApi;  // Thêm dòng này
