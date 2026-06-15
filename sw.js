@@ -1,5 +1,6 @@
 // sw.js - Service Worker cho phép chạy offline
-const CACHE_NAME = 'dichthuat-du-lich-v12';  // 🔥 Đổi version
+const CACHE_NAME = 'dichthuat-du-lich-v23';  // 🔥 Đã nâng version để xóa cache cũ
+
 const urlsToCache = [
     './',
     './index.html',
@@ -44,12 +45,13 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
     
-    // 🔥 Bỏ qua request đến Cloudflare Worker
-    if (url.hostname === 'dichthuatdulich.cuongprovuidulieu.workers.dev') {
-        event.respondWith(fetch(event.request));
-        return;
+    // 🔥 GIẢI PHÁP SỬA LỖI: Nếu là request POST hoặc gọi tới Cloudflare Worker
+    // Ta return NGAY LẬP TỨC để trình duyệt tự xử lý mạng độc lập, không can thiệp luồng dữ liệu Body.
+    if (url.hostname === 'dichthuatdulich.cuongprovuidulieu.workers.dev' || event.request.method === 'POST') {
+        return; 
     }
     
+    // Chỉ xử lý cache cho các tài nguyên tĩnh thông thường (GET)
     event.respondWith(
         caches.match(event.request)
             .then(response => {
