@@ -31,12 +31,22 @@ let recognitionAnDoViet = null, recognitionVietAnDo = null, isListeningAnDo = fa
 
 function createRecognitionHindi(langCode, onResult, onEnd) {
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = langCode;
-    recognition.onresult = async (e) => { let t = ""; for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) t += e.results[i][0].transcript; if (t && onResult) await onResult(t); };
-    recognition.onerror = (e) => { if (onEnd) onEnd(); };
-    recognition.onend = () => { if (onEnd) onEnd(); };
+    recognition.onresult = async (e) => { 
+        let t = ""; 
+        for (let i = e.resultIndex; i < e.results.length; i++) 
+            if (e.results[i].isFinal) t += e.results[i][0].transcript; 
+        if (t && onResult) await onResult(t); 
+    };
+    recognition.onerror = (e) => { 
+        console.error("Lỗi:", e.error);
+        if (onEnd) onEnd(); 
+    };
+    recognition.onend = () => { 
+        if (onEnd) onEnd(); 
+    };
     return recognition;
 }
 
@@ -58,32 +68,60 @@ window.speakVietForHindi = function(text) {
     setTimeout(() => window.speechSynthesis.speak(u), 50);
 };
 
-window.stopAnDoVietListening = () => { if (recognitionAnDoViet) { try { recognitionAnDoViet.stop(); } catch(e) {} recognitionAnDoViet = null; } isListeningAnDo = false; };
-window.stopVietAnDoListening = () => { if (recognitionVietAnDo) { try { recognitionVietAnDo.stop(); } catch(e) {} recognitionVietAnDo = null; } isListeningVietAnDo = false; };
+window.stopAnDoVietListening = () => { 
+    if (recognitionAnDoViet) { 
+        try { recognitionAnDoViet.stop(); } catch(e) {} 
+        recognitionAnDoViet = null; 
+    } 
+    isListeningAnDo = false; 
+};
 
-window.startListeningAnDoViet = async (cb) => {
-    if (isListeningAnDo) return;
-    recognitionAnDoViet?.stop();
+window.stopVietAnDoListening = () => { 
+    if (recognitionVietAnDo) { 
+        try { recognitionVietAnDo.stop(); } catch(e) {} 
+        recognitionVietAnDo = null; 
+    } 
+    isListeningVietAnDo = false; 
+};
+
+window.startListeningAnDoViet = (cb) => {
+    if (isListeningAnDo) {
+        window.stopAnDoVietListening();
+    }
     anDoVietCallback = cb;
+    
     recognitionAnDoViet = createRecognitionHindi("hi-IN", async (t) => {
         const v = await callApi_HI(`Dịch câu sau đây từ Hindi sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (anDoVietCallback) anDoVietCallback(t, v);
         window.speakVietForHindi(v);
-    }, () => { if (isListeningAnDo) setTimeout(() => window.startListeningAnDoViet(anDoVietCallback), 500); });
-    recognitionAnDoViet?.start();
+        window.stopAnDoVietListening();
+    }, () => { 
+        isListeningAnDo = false;
+        recognitionAnDoViet = null;
+    });
+    
+    recognitionAnDoViet.start();
     isListeningAnDo = true;
 };
 
-window.startListeningVietAnDo = async (cb) => {
-    if (isListeningVietAnDo) return;
-    recognitionVietAnDo?.stop();
+window.startListeningVietAnDo = (cb) => {
+    if (isListeningVietAnDo) {
+        window.stopVietAnDoListening();
+    }
     vietAnDoCallback = cb;
+    
     recognitionVietAnDo = createRecognitionHindi("vi-VN", async (t) => {
         const h = await callApi_HI(`Dịch câu sau đây từ Việt sang Hindi (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietAnDoCallback) vietAnDoCallback(t, h);
         window.speakHindi(h);
-    }, () => { if (isListeningVietAnDo) setTimeout(() => window.startListeningVietAnDo(vietAnDoCallback), 500); });
-    recognitionVietAnDo?.start();
+        window.stopVietAnDoListening();
+    }, () => { 
+        isListeningVietAnDo = false;
+        recognitionVietAnDo = null;
+    });
+    
+    recognitionVietAnDo.start();
     isListeningVietAnDo = true;
 };
+
 console.log("tiengando.js đã sẵn sàng");

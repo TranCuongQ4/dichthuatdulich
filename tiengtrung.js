@@ -31,12 +31,22 @@ let recognitionTrungViet = null, recognitionVietTrung = null, isListeningTrung =
 
 function createRecognitionChinese(langCode, onResult, onEnd) {
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = langCode;
-    recognition.onresult = async (e) => { let t = ""; for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) t += e.results[i][0].transcript; if (t && onResult) await onResult(t); };
-    recognition.onerror = (e) => { if (onEnd) onEnd(); };
-    recognition.onend = () => { if (onEnd) onEnd(); };
+    recognition.onresult = async (e) => { 
+        let t = ""; 
+        for (let i = e.resultIndex; i < e.results.length; i++) 
+            if (e.results[i].isFinal) t += e.results[i][0].transcript; 
+        if (t && onResult) await onResult(t); 
+    };
+    recognition.onerror = (e) => { 
+        console.error("Lỗi:", e.error);
+        if (onEnd) onEnd(); 
+    };
+    recognition.onend = () => { 
+        if (onEnd) onEnd(); 
+    };
     return recognition;
 }
 
@@ -58,32 +68,60 @@ window.speakVietForChinese = function(text) {
     setTimeout(() => window.speechSynthesis.speak(u), 50);
 };
 
-window.stopTrungVietListening = () => { if (recognitionTrungViet) { try { recognitionTrungViet.stop(); } catch(e) {} recognitionTrungViet = null; } isListeningTrung = false; };
-window.stopVietTrungListening = () => { if (recognitionVietTrung) { try { recognitionVietTrung.stop(); } catch(e) {} recognitionVietTrung = null; } isListeningVietTrung = false; };
+window.stopTrungVietListening = () => { 
+    if (recognitionTrungViet) { 
+        try { recognitionTrungViet.stop(); } catch(e) {} 
+        recognitionTrungViet = null; 
+    } 
+    isListeningTrung = false; 
+};
 
-window.startListeningTrungViet = async (cb) => {
-    if (isListeningTrung) return;
-    recognitionTrungViet?.stop();
+window.stopVietTrungListening = () => { 
+    if (recognitionVietTrung) { 
+        try { recognitionVietTrung.stop(); } catch(e) {} 
+        recognitionVietTrung = null; 
+    } 
+    isListeningVietTrung = false; 
+};
+
+window.startListeningTrungViet = (cb) => {
+    if (isListeningTrung) {
+        window.stopTrungVietListening();
+    }
     trungVietCallback = cb;
+    
     recognitionTrungViet = createRecognitionChinese("zh-CN", async (t) => {
         const v = await callApi_CN(`Dịch câu sau đây từ Trung sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (trungVietCallback) trungVietCallback(t, v);
         window.speakVietForChinese(v);
-    }, () => { if (isListeningTrung) setTimeout(() => window.startListeningTrungViet(trungVietCallback), 500); });
-    recognitionTrungViet?.start();
+        window.stopTrungVietListening();
+    }, () => { 
+        isListeningTrung = false;
+        recognitionTrungViet = null;
+    });
+    
+    recognitionTrungViet.start();
     isListeningTrung = true;
 };
 
-window.startListeningVietTrung = async (cb) => {
-    if (isListeningVietTrung) return;
-    recognitionVietTrung?.stop();
+window.startListeningVietTrung = (cb) => {
+    if (isListeningVietTrung) {
+        window.stopVietTrungListening();
+    }
     vietTrungCallback = cb;
+    
     recognitionVietTrung = createRecognitionChinese("vi-VN", async (t) => {
         const c = await callApi_CN(`Dịch câu sau đây từ Việt sang Trung (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
         if (vietTrungCallback) vietTrungCallback(t, c);
         window.speakChinese(c);
-    }, () => { if (isListeningVietTrung) setTimeout(() => window.startListeningVietTrung(vietTrungCallback), 500); });
-    recognitionVietTrung?.start();
+        window.stopVietTrungListening();
+    }, () => { 
+        isListeningVietTrung = false;
+        recognitionVietTrung = null;
+    });
+    
+    recognitionVietTrung.start();
     isListeningVietTrung = true;
 };
+
 console.log("tiengtrung.js đã sẵn sàng");

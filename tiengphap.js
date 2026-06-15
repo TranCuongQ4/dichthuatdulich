@@ -31,12 +31,22 @@ let recognitionPhapViet = null, recognitionVietPhap = null, isListeningPhap = fa
 
 function createRecognitionFrench(langCode, onResult, onEnd) {
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = langCode;
-    recognition.onresult = async (e) => { let t = ""; for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) t += e.results[i][0].transcript; if (t && onResult) await onResult(t); };
-    recognition.onerror = (e) => { if (onEnd) onEnd(); };
-    recognition.onend = () => { if (onEnd) onEnd(); };
+    recognition.onresult = async (e) => { 
+        let t = ""; 
+        for (let i = e.resultIndex; i < e.results.length; i++) 
+            if (e.results[i].isFinal) t += e.results[i][0].transcript; 
+        if (t && onResult) await onResult(t); 
+    };
+    recognition.onerror = (e) => { 
+        console.error("Lỗi:", e.error);
+        if (onEnd) onEnd(); 
+    };
+    recognition.onend = () => { 
+        if (onEnd) onEnd(); 
+    };
     return recognition;
 }
 
@@ -58,32 +68,60 @@ window.speakVietForFrench = function(text) {
     setTimeout(() => window.speechSynthesis.speak(u), 50);
 };
 
-window.stopPhapVietListening = () => { if (recognitionPhapViet) { try { recognitionPhapViet.stop(); } catch(e) {} recognitionPhapViet = null; } isListeningPhap = false; };
-window.stopVietPhapListening = () => { if (recognitionVietPhap) { try { recognitionVietPhap.stop(); } catch(e) {} recognitionVietPhap = null; } isListeningVietPhap = false; };
+window.stopPhapVietListening = () => { 
+    if (recognitionPhapViet) { 
+        try { recognitionPhapViet.stop(); } catch(e) {} 
+        recognitionPhapViet = null; 
+    } 
+    isListeningPhap = false; 
+};
 
-window.startListeningPhapViet = async (cb) => { 
-    if (isListeningPhap) return; 
-    recognitionPhapViet?.stop(); 
-    phapVietCallback = cb; 
-    recognitionPhapViet = createRecognitionFrench("fr-FR", async (t) => { 
-        const v = await callApi_FR(`Dịch câu sau đây từ Pháp sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`); 
-        if (phapVietCallback) phapVietCallback(t, v); 
+window.stopVietPhapListening = () => { 
+    if (recognitionVietPhap) { 
+        try { recognitionVietPhap.stop(); } catch(e) {} 
+        recognitionVietPhap = null; 
+    } 
+    isListeningVietPhap = false; 
+};
+
+window.startListeningPhapViet = (cb) => {
+    if (isListeningPhap) {
+        window.stopPhapVietListening();
+    }
+    phapVietCallback = cb;
+    
+    recognitionPhapViet = createRecognitionFrench("fr-FR", async (t) => {
+        const v = await callApi_FR(`Dịch câu sau đây từ Pháp sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+        if (phapVietCallback) phapVietCallback(t, v);
         window.speakVietForFrench(v);
-    }, () => { if (isListeningPhap) setTimeout(() => window.startListeningPhapViet(phapVietCallback), 500); }); 
-    recognitionPhapViet?.start(); 
-    isListeningPhap = true; 
+        window.stopPhapVietListening();
+    }, () => { 
+        isListeningPhap = false;
+        recognitionPhapViet = null;
+    });
+    
+    recognitionPhapViet.start();
+    isListeningPhap = true;
 };
 
-window.startListeningVietPhap = async (cb) => { 
-    if (isListeningVietPhap) return; 
-    recognitionVietPhap?.stop(); 
-    vietPhapCallback = cb; 
-    recognitionVietPhap = createRecognitionFrench("vi-VN", async (t) => { 
-        const f = await callApi_FR(`Dịch câu sau đây từ Việt sang Pháp (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`); 
-        if (vietPhapCallback) vietPhapCallback(t, f); 
+window.startListeningVietPhap = (cb) => {
+    if (isListeningVietPhap) {
+        window.stopVietPhapListening();
+    }
+    vietPhapCallback = cb;
+    
+    recognitionVietPhap = createRecognitionFrench("vi-VN", async (t) => {
+        const f = await callApi_FR(`Dịch câu sau đây từ Việt sang Pháp (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+        if (vietPhapCallback) vietPhapCallback(t, f);
         window.speakFrench(f);
-    }, () => { if (isListeningVietPhap) setTimeout(() => window.startListeningVietPhap(vietPhapCallback), 500); }); 
-    recognitionVietPhap?.start(); 
-    isListeningVietPhap = true; 
+        window.stopVietPhapListening();
+    }, () => { 
+        isListeningVietPhap = false;
+        recognitionVietPhap = null;
+    });
+    
+    recognitionVietPhap.start();
+    isListeningVietPhap = true;
 };
+
 console.log("tiengphap.js đã sẵn sàng");
