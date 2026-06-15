@@ -30,10 +30,10 @@ async function callApi(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-// Biến quản lý phiên micro dùng chung duy nhất cho toàn bộ ứng dụng trên Window
+// Quản lý phiên micro toàn cục duy nhất
 window.globalCurrentRecognition = null;
 
-// Hàm khởi tạo nhận diện giọng nói toàn cục, chống trùng lặp ghi đè
+// Hàm tạo Recognition dùng chung chống trùng lặp ghi đè hàm tự do
 window.sharedCreateGenericRecognition = function(langCode, onResult, onEnd) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -76,7 +76,6 @@ window.stopAllListeningGlobal = () => {
     }
 };
 
-// Định nghĩa các hàm dọn dẹp tương thích ngược với script.js
 window.stopAnhVietListening = window.stopAllListeningGlobal;
 window.stopVietAnhListening = window.stopAllListeningGlobal;
 
@@ -103,50 +102,61 @@ window.speakEnglish = function(text) {
 
 window.startListeningAnhViet = (cb) => {
     window.stopAllListeningGlobal();
-    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
-    anhVietCallback = cb;
     
-    const rec = window.sharedCreateGenericRecognition("en-US", async (t) => {
-        const v = await callApi(`Dịch câu sau đây từ Anh sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-        if (anhVietCallback) anhVietCallback(t, v);
-        window.speakVietForEnglish(v);
-        window.stopAllListeningGlobal();
-    }, () => { 
-        isListeningAnh = false;
-        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-    });
-    
-    if (rec) {
-        window.globalCurrentRecognition = rec;
-        try {
-            rec.start();
-            isListeningAnh = true;
-        } catch(e) { console.error(e); }
+    // Sử dụng setTimeout nhỏ để tách biệt luồng xử lý phần cứng âm thanh mồi, tránh chặn mic
+    if (window.speechSynthesis) {
+        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
     }
+    
+    setTimeout(() => {
+        anhVietCallback = cb;
+        const rec = window.sharedCreateGenericRecognition("en-US", async (t) => {
+            const v = await callApi(`Dịch câu sau đây từ Anh sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+            if (anhVietCallback) anhVietCallback(t, v);
+            window.speakVietForEnglish(v);
+            window.stopAllListeningGlobal();
+        }, () => { 
+            isListeningAnh = false;
+            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+        });
+        
+        if (rec) {
+            window.globalCurrentRecognition = rec;
+            try {
+                rec.start();
+                isListeningAnh = true;
+            } catch(e) { console.error(e); }
+        }
+    }, 50);
 };
 
 window.startListeningVietAnh = (cb) => {
     window.stopAllListeningGlobal();
-    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
-    vietAnhCallback = cb;
     
-    const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
-        const e = await callApi(`Dịch câu sau đây từ Việt sang Anh (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-        if (vietAnhCallback) vietAnhCallback(t, e);
-        window.speakEnglish(e);
-        window.stopAllListeningGlobal();
-    }, () => { 
-        isListeningViet = false;
-        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-    });
-    
-    if (rec) {
-        window.globalCurrentRecognition = rec;
-        try {
-            rec.start();
-            isListeningViet = true;
-        } catch(e) { console.error(e); }
+    if (window.speechSynthesis) {
+        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
     }
+    
+    setTimeout(() => {
+        vietAnhCallback = cb;
+        const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+            const e = await callApi(`Dịch câu sau đây từ Việt sang Anh (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+            if (vietAnhCallback) vietAnhCallback(t, e);
+            window.speakEnglish(e);
+            window.stopAllListeningGlobal();
+        }, () => { 
+            isListeningViet = false;
+            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+        });
+        
+        if (rec) {
+            window.globalCurrentRecognition = rec;
+            try {
+                rec.start();
+                isListeningViet = true;
+            } catch(e) { console.error(e); }
+        }
+    }, 50);
 };
 
 console.log("tienganh.js đã sẵn sàng kích hoạt");

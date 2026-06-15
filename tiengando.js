@@ -56,50 +56,58 @@ window.speakHindi = function(text) {
 
 window.startListeningAnDoViet = (cb) => {
     window.stopAllListeningGlobal();
-    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
-    anDoVietCallback = cb;
-    
-    const rec = window.sharedCreateGenericRecognition("hi-IN", async (t) => {
-        const v = await callApi_HI(`Dịch câu sau đây từ Hindi sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-        if (anDoVietCallback) anDoVietCallback(t, v);
-        window.speakVietForHindi(v);
-        window.stopAllListeningGlobal();
-    }, () => { 
-        isListeningAnDo = false;
-        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-    });
-    
-    if (rec) {
-        window.globalCurrentRecognition = rec;
-        try {
-            rec.start();
-            isListeningAnDo = true;
-        } catch(e) { console.error(e); }
+    if (window.speechSynthesis) {
+        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
     }
+    
+    setTimeout(() => {
+        anDoVietCallback = cb;
+        const rec = window.sharedCreateGenericRecognition("hi-IN", async (t) => {
+            const v = await callApi_HI(`Dịch câu sau đây từ Hindi sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+            if (anDoVietCallback) anDoVietCallback(t, v);
+            window.speakVietForHindi(v);
+            window.stopAllListeningGlobal();
+        }, () => { 
+            isListeningAnDo = false;
+            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+        });
+        
+        if (rec) {
+            window.globalCurrentRecognition = rec;
+            try {
+                rec.start();
+                isListeningAnDo = true;
+            } catch(e) { console.error(e); }
+        }
+    }, 50);
 };
 
 window.startListeningVietAnDo = (cb) => {
     window.stopAllListeningGlobal();
-    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
-    vietAnDoCallback = cb;
-    
-    const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
-        const h = await callApi_HI(`Dịch câu sau đây từ Việt sang Hindi (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-        if (vietAnDoCallback) vietAnDoCallback(t, h);
-        window.speakHindi(h);
-        window.stopAllListeningGlobal();
-    }, () => { 
-        isListeningVietAnDo = false;
-        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-    });
-    
-    if (rec) {
-        window.globalCurrentRecognition = rec;
-        try {
-            rec.start();
-            isListeningVietAnDo = true;
-        } catch(e) { console.error(e); }
+    if (window.speechSynthesis) {
+        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
     }
+    
+    setTimeout(() => {
+        vietAnDoCallback = cb;
+        const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+            const h = await callApi_HI(`Dịch câu sau đây từ Việt sang Hindi (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+            if (vietAnDoCallback) vietAnDoCallback(t, h);
+            window.speakHindi(h);
+            window.stopAllListeningGlobal();
+        }, () => { 
+            isListeningVietAnDo = false;
+            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+        });
+        
+        if (rec) {
+            window.globalCurrentRecognition = rec;
+            try {
+                rec.start();
+                isListeningVietAnDo = true;
+            } catch(e) { console.error(e); }
+        }
+    }, 50);
 };
 
 console.log("tiengando.js đã sẵn sàng");

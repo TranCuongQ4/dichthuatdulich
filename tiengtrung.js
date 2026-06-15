@@ -56,50 +56,58 @@ window.speakChinese = function(text) {
 
 window.startListeningTrungViet = (cb) => {
     window.stopAllListeningGlobal();
-    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
-    trungVietCallback = cb;
-    
-    const rec = window.sharedCreateGenericRecognition("zh-CN", async (t) => {
-        const v = await callApi_CN(`Dịch câu sau đây từ Trung sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-        if (trungVietCallback) trungVietCallback(t, v);
-        window.speakVietForChinese(v);
-        window.stopAllListeningGlobal();
-    }, () => { 
-        isListeningTrung = false;
-        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-    });
-    
-    if (rec) {
-        window.globalCurrentRecognition = rec;
-        try {
-            rec.start();
-            isListeningTrung = true;
-        } catch(e) { console.error(e); }
+    if (window.speechSynthesis) {
+        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
     }
+    
+    setTimeout(() => {
+        trungVietCallback = cb;
+        const rec = window.sharedCreateGenericRecognition("zh-CN", async (t) => {
+            const v = await callApi_CN(`Dịch câu sau đây từ Trung sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+            if (trungVietCallback) trungVietCallback(t, v);
+            window.speakVietForChinese(v);
+            window.stopAllListeningGlobal();
+        }, () => { 
+            isListeningTrung = false;
+            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+        });
+        
+        if (rec) {
+            window.globalCurrentRecognition = rec;
+            try {
+                rec.start();
+                isListeningTrung = true;
+            } catch(e) { console.error(e); }
+        }
+    }, 50);
 };
 
 window.startListeningVietTrung = (cb) => {
     window.stopAllListeningGlobal();
-    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
-    vietTrungCallback = cb;
-    
-    const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
-        const c = await callApi_CN(`Dịch câu sau đây từ Việt sang Trung (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-        if (vietTrungCallback) vietTrungCallback(t, c);
-        window.speakChinese(c);
-        window.stopAllListeningGlobal();
-    }, () => { 
-        isListeningVietTrung = false;
-        if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
-    });
-    
-    if (rec) {
-        window.globalCurrentRecognition = rec;
-        try {
-            rec.start();
-            isListeningVietTrung = true;
-        } catch(e) { console.error(e); }
+    if (window.speechSynthesis) {
+        try { window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){}
     }
+    
+    setTimeout(() => {
+        vietTrungCallback = cb;
+        const rec = window.sharedCreateGenericRecognition("vi-VN", async (t) => {
+            const c = await callApi_CN(`Dịch câu sau đây từ Việt sang Trung (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
+            if (vietTrungCallback) vietTrungCallback(t, c);
+            window.speakChinese(c);
+            window.stopAllListeningGlobal();
+        }, () => { 
+            isListeningVietTrung = false;
+            if (window.globalCurrentRecognition === rec) window.globalCurrentRecognition = null;
+        });
+        
+        if (rec) {
+            window.globalCurrentRecognition = rec;
+            try {
+                rec.start();
+                isListeningVietTrung = true;
+            } catch(e) { console.error(e); }
+        }
+    }, 50);
 };
 
 console.log("tiengtrung.js đã sẵn sàng");
