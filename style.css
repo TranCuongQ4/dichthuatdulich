@@ -26,37 +26,38 @@
     z-index: 5;
 }
 
-/* Viền trắng bao quanh khung 375x667 */
+/* VIỀN TRẮNG TRÀN RA TOÀN BỘ MÉP - KHÔNG CÓ KHOẢNG CÁCH */
 .screen-container::before {
     content: '';
     position: absolute;
-    top: 6px;
-    left: 6px;
-    right: 6px;
-    bottom: 6px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     pointer-events: none;
-    border: 2px solid white;
-    border-radius: 24px;
+    border: 3px solid white;
     z-index: 10;
-    box-shadow: 0 0 8px rgba(255,255,255,0.5);
+    box-shadow: 0 0 10px rgba(255,255,255,0.8);
 }
 
-/* LED chạy bao quanh khung 375x667 */
+/* LED CHẠY TRÀN RA TOÀN BỘ MÉP TRÁI/PHẢI/TRÊN/DƯỚI - ĐẸP MẮT HƠN */
 .screen-container::after {
     content: '';
     position: absolute;
-    top: 2px;
-    left: 2px;
-    right: 2px;
-    bottom: 2px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     pointer-events: none;
-    border-radius: 28px;
+    border-radius: 0;
     background: repeating-linear-gradient(
         110deg,
         #ff0 0px, #ff0 6px,
         #0f0 6px, #0f0 12px,
         #0ff 12px, #0ff 18px,
-        #f0f 18px, #f0f 24px
+        #f0f 18px, #f0f 24px,
+        #ff6600 24px, #ff6600 30px,
+        #ff0066 30px, #ff0066 36px
     );
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
@@ -64,15 +65,19 @@
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     padding: 4px;
-    background-size: 200% 200%;
-    animation: ledMove 1.5s linear infinite;
-    opacity: 0.8;
+    background-size: 300% 300%;
+    animation: ledMove 2s linear infinite;
+    opacity: 0.9;
     z-index: 10;
 }
 
+/* HIỆU ỨNG LED CHẠY THEO CHIỀU KIM ĐỒNG HỒ */
 @keyframes ledMove {
     0% { background-position: 0 0; }
-    100% { background-position: 200% 200%; }
+    25% { background-position: 100% 0; }
+    50% { background-position: 100% 100%; }
+    75% { background-position: 0 100%; }
+    100% { background-position: 0 0; }
 }
 
 body {
