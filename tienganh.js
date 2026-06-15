@@ -30,9 +30,8 @@ async function callApi(prompt) {
     } catch (err) { return "[Lỗi kết nối]"; }
 }
 
-let recognitionAnhViet = null, recognitionVietAnh = null;
-let isListeningAnh = false, isListeningViet = false;
-let anhVietCallback = null, vietAnhCallback = null;
+// Đối tượng lưu trữ phiên nhận diện giọng nói hiện tại đang chạy
+let currentRecognition = null;
 
 function createGenericRecognition(langCode, onResult, onEnd) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -64,88 +63,61 @@ function createGenericRecognition(langCode, onResult, onEnd) {
     return recognition;
 }
 
-window.speakEnglish = function(text) {
-    if (!text || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = 0.9;
-    setTimeout(() => window.speechSynthesis.speak(u), 50);
+// Hàm tắt mic dùng chung cho toàn bộ ứng dụng nhằm giải phóng phần cứng di động
+window.stopAllListening = () => {
+    if (currentRecognition) {
+        try { currentRecognition.abort(); } catch(e) {}
+        currentRecognition = null;
+    }
 };
 
-window.speakVietForEnglish = function(text) {
-    if (!text || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'vi-VN';
-    u.rate = 0.9;
-    setTimeout(() => window.speechSynthesis.speak(u), 50);
-};
+// Định nghĩa các hàm tắt mic cũ để không làm lỗi script.js liên kết bên ngoài
+window.stopAnhVietListening = window.stopAllListening;
+window.stopVietAnhListening = window.stopAllListening;
+window.stopTrungVietListening = window.stopAllListening;
+window.stopVietTrungListening = window.stopAllListening;
+window.stopAnDoVietListening = window.stopAllListening;
+window.stopVietAnDoListening = window.stopAllListening;
+window.stopMalaiVietListening = window.stopAllListening;
+window.stopVietMalaiListening = window.stopAllListening;
+window.stopPhapVietListening = window.stopAllListening;
+window.stopVietPhapListening = window.stopAllListening;
 
-window.stopAnhVietListening = () => { 
-    if (recognitionAnhViet) { 
-        try { recognitionAnhViet.abort(); } catch(e) {} 
-        recognitionAnhViet = null; 
-    } 
-    isListeningAnh = false; 
-};
-
-window.stopVietAnhListening = () => { 
-    if (recognitionVietAnh) { 
-        try { recognitionVietAnh.abort(); } catch(e) {} 
-        recognitionVietAnh = null; 
-    } 
-    isListeningViet = false; 
-};
-
-window.startListeningAnhViet = (cb) => {
-    window.stopAnhVietListening();
-    window.stopVietAnhListening();
+// Hàm lõi thực hiện khởi tạo và kích hoạt Micro theo từng cặp ngôn ngữ linh hoạt
+function setupListeningMode(srcLangCode, srcName, targetName, cb) {
+    window.stopAllListening();
     
     if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance('')); 
-    anhVietCallback = cb;
     
-    recognitionAnhViet = createGenericRecognition("en-US", async (t) => {
-        const v = await callApi(`Dịch câu sau đây từ Anh sang Việt (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-        if (anhVietCallback) anhVietCallback(t, v);
-        window.speakVietForEnglish(v);
-        window.stopAnhVietListening();
+    currentRecognition = createGenericRecognition(srcLangCode, async (text) => {
+        const translated = await callApi(`Dịch câu sau đây từ ${srcName} sang ${targetName} (CHỈ trả về bản dịch, không thêm gì khác):\n${text}`);
+        if (cb) cb(text, translated);
+        window.stopAllListening();
     }, () => { 
-        isListeningAnh = false;
-        recognitionAnhViet = null;
+        currentRecognition = null;
     });
     
-    if (recognitionAnhViet) {
+    if (currentRecognition) {
         try {
-            recognitionAnhViet.start();
-            isListeningAnh = true;
+            currentRecognition.start();
         } catch(e) { console.error(e); }
     }
-};
+}
 
-window.startListeningVietAnh = (cb) => {
-    window.stopAnhVietListening();
-    window.stopVietAnhListening();
-    
-    if (window.speechSynthesis) window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
-    vietAnhCallback = cb;
-    
-    recognitionVietAnh = createGenericRecognition("vi-VN", async (t) => {
-        const e = await callApi(`Dịch câu sau đây từ Việt sang Anh (CHỈ trả về bản dịch, không thêm gì khác):\n${t}`);
-        if (vietAnhCallback) vietAnhCallback(t, e);
-        window.speakEnglish(e);
-        window.stopVietAnhListening();
-    }, () => { 
-        isListeningViet = false;
-        recognitionVietAnh = null;
-    });
-    
-    if (recognitionVietAnh) {
-        try {
-            recognitionVietAnh.start();
-            isListeningViet = true;
-        } catch(e) { console.error(e); }
-    }
-};
+// ĐĂNG KÝ ĐẦY ĐỦ CÁC HÀM LÊN WINDOW ĐỂ SCRIPT.JS CÓ THỂ GỌI ĐƯỢC
+window.startListeningAnhViet = (cb) => setupListeningMode("en-US", "Anh", "Việt", cb);
+window.startListeningVietAnh = (cb) => setupListeningMode("vi-VN", "Việt", "Anh", cb);
 
-console.log("tienganh.js đã sẵn sàng");
+window.startListeningTrungViet = (cb) => setupListeningMode("zh-CN", "Trung", "Việt", cb);
+window.startListeningVietTrung = (cb) => setupListeningMode("vi-VN", "Việt", "Trung", cb);
+
+window.startListeningAnDoViet = (cb) => setupListeningMode("hi-IN", "Ấn Độ", "Việt", cb);
+window.startListeningVietAnDo = (cb) => setupListeningMode("vi-VN", "Việt", "Ấn Độ", cb);
+
+window.startListeningMalaiViet = (cb) => setupListeningMode("ms-MY", "Malaysia", "Việt", cb);
+window.startListeningVietMalai = (cb) => setupListeningMode("vi-VN", "Việt", "Malaysia", cb);
+
+window.startListeningPhapViet  = (cb) => setupListeningMode("fr-FR", "Pháp", "Việt", cb);
+window.startListeningVietPhap  = (cb) => setupListeningMode("vi-VN", "Việt", "Pháp", cb);
+
+console.log("Hệ thống dịch thuật đa ngôn ngữ đã sẵn sàng kích hoạt");
