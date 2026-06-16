@@ -5,7 +5,19 @@
     user-select: none;
 }
 
-/* Container chính giữa màn hình - kích thước 375x667 */
+/* Reset body để không còn khoảng cách nào */
+body {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+}
+
+/* Container chính - ôm sát hoàn toàn 375x667, không bo góc */
 .screen-container {
     width: 375px;
     height: 667px;
@@ -14,6 +26,7 @@
     background-color: #0a3d2f;
     overflow: hidden;
     box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    border-radius: 0;
 }
 
 /* Nội dung cuộn bên trong */
@@ -24,67 +37,46 @@
     overflow-x: hidden;
     position: relative;
     z-index: 5;
+    border-radius: 0;
 }
 
-/* Viền trắng bao quanh khung 375x667 */
+/* Bỏ viền trắng bao quanh */
 .screen-container::before {
-    content: '';
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    right: 6px;
-    bottom: 6px;
-    pointer-events: none;
-    border: 2px solid white;
-    border-radius: 24px;
-    z-index: 10;
-    box-shadow: 0 0 8px rgba(255,255,255,0.5);
+    display: none;
 }
 
-/* LED chạy bao quanh khung 375x667 */
+/* Viền trắng sáng chớp nhẹ - thay thế LED màu */
 .screen-container::after {
     content: '';
     position: absolute;
-    top: 2px;
-    left: 2px;
-    right: 2px;
-    bottom: 2px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     pointer-events: none;
-    border-radius: 28px;
-    background: repeating-linear-gradient(
-        110deg,
-        #ff0 0px, #ff0 6px,
-        #0f0 6px, #0f0 12px,
-        #0ff 12px, #0ff 18px,
-        #f0f 18px, #f0f 24px
-    );
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    padding: 4px;
-    background-size: 200% 200%;
-    animation: ledMove 1.5s linear infinite;
-    opacity: 0.8;
     z-index: 10;
+    /* Viền trắng solid 3px */
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    /* Hiệu ứng chớp nhẹ */
+    animation: whiteGlow 1.2s ease-in-out infinite;
 }
 
-@keyframes ledMove {
-    0% { background-position: 0 0; }
-    100% { background-position: 200% 200%; }
+@keyframes whiteGlow {
+    0% {
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    }
+    50% {
+        border-color: rgba(255, 255, 255, 1);
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+    }
+    100% {
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    }
 }
 
-body {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    font-family: 'Segoe UI', 'Roboto', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
-
+/* Phần còn lại giữ nguyên */
 .app-container {
     display: flex;
     flex-direction: column;
@@ -166,23 +158,26 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    background: rgba(0,0,0,0.4);
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 215, 0, 0.3);
     border-radius: 30px;
     margin: 10px 0 5px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .history-count {
     font-size: 13px;
-    color: #ffefc0;
+    color: #ffffff;
     background: #0e5e44;
     padding: 4px 12px;
     border-radius: 20px;
+    font-weight: bold;
 }
 
 .clear-btn {
     background: #8b3a3a;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 6px 14px;
     border-radius: 25px;
     color: white;
@@ -190,6 +185,8 @@ body {
     font-weight: bold;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    margin-left: auto;
 }
 
 .clear-btn:active {
@@ -217,7 +214,7 @@ body {
     border-bottom: 1px solid gold;
 }
 
-/* 🔥 QUAN TRỌNG: Khung lịch sử cao 400px */
+/* Khung lịch sử cao 400px */
 .history-list {
     height: 400px;
     overflow-y: auto;
@@ -330,4 +327,17 @@ body {
     border: 1px solid gold;
     font-weight: bold;
     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+/* Responsive cho mobile - đảm bảo khung căn giữa và không bị lệch */
+@media (max-width: 375px) {
+    body {
+        padding: 0;
+    }
+    .screen-container {
+        width: 100vw;
+        height: 100vh;
+        max-width: 375px;
+        max-height: 667px;
+    }
 }
