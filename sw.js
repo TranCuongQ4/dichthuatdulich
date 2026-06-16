@@ -1,5 +1,5 @@
 // sw.js - Service Worker cho phép chạy offline
-const CACHE_NAME = 'dichthuat-du-lich-v23';  // 🔥 Đã nâng version để xóa cache cũ
+const CACHE_NAME = 'dichthuat-du-lich-v1';  // 🔥 Đã nâng version để xóa cache cũ
 
 const urlsToCache = [
     './',
